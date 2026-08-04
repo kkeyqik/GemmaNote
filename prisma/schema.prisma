@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id          String     @id @default(uuid())
+  clerkId     String     @unique
+  email       String     @unique
+  plan        String     @default("FREE") // FREE, PRO, AGENCY
+  usageCount  Int        @default(0)
+  isSuspended Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  documents   Document[]
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  title       String   @default("Untitled")
+  content     String? // Can store HTML or JSON
+  isGenerated Boolean  @default(false)
+  userId      String? // Optional because unauthenticated users save locally
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
