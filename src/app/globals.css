@@ -689,3 +689,136 @@ body.dark-mode .note-card:hover, body.dark-mode .note-card.active {
 
 .modal-actions button.primary { background: var(--accent); color: white; }
 .modal-actions button.primary:hover { background: var(--accent-hover); }
+
+/* Shared interaction language */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 3px solid rgba(129, 140, 248, 0.45);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Keep the editor useful when the dashboard no longer has desktop width. */
+@media (max-width: 900px) {
+  .dashboard {
+    display: block;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-height: auto;
+    padding: 16px;
+    gap: 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  .sidebar .logo {
+    font-size: 1.1rem;
+  }
+
+  .new-note-btn {
+    width: auto;
+    align-self: flex-start;
+    padding: 10px 14px;
+  }
+
+  .nav-menu ul {
+    flex-direction: row;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .nav-item {
+    flex: 0 0 auto;
+    padding: 9px 10px;
+  }
+
+  .main-content {
+    padding: 16px;
+    gap: 20px;
+    overflow: visible;
+  }
+
+  .header {
+    align-items: flex-start;
+    gap: 12px;
+    flex-direction: column;
+  }
+
+  .search-bar {
+    width: 100%;
+    padding: 11px 14px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .bottom-section {
+    flex-direction: column;
+  }
+
+  .editor-container, .stats-panel {
+    width: 100%;
+  }
+
+  .editor-container {
+    min-height: 540px;
+    padding: 20px;
+  }
+
+  .stats-panel {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 560px) {
+  .main-content {
+    padding: 12px;
+  }
+
+  .header-actions > span {
+    display: none !important;
+  }
+
+  .cards-container {
+    gap: 12px;
+  }
+
+  .note-card {
+    min-width: 220px;
+  }
+
+  .editor-header {
+    align-items: flex-start;
+    gap: 14px;
+    flex-direction: column;
+  }
+
+  .editor-actions {
+    flex-wrap: wrap;
+  }
+
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  .modal {
+    width: calc(100% - 32px);
+    padding: 24px;
+  }
+}

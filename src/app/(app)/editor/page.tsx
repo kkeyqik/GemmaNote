@@ -2,10 +2,41 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import gsap from "gsap";
+import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
 import Editor from "../../../components/Editor";
-import { PenSquare, LayoutGrid, Star, Trash2, Archive, Plus, Search, Sun, Moon, Bell, Settings, FileText, BarChart2, Save, Download, RotateCcw, XCircle, Trash, List as ListIcon, Grid as GridIcon, CheckCircle2, Tag } from "lucide-react";
+import { PenSquare, LayoutGrid, Star, Trash2, Archive, Plus, Search, Sun, Moon, Settings, FileText, BarChart2, Download, RotateCcw, XCircle, Trash, List as ListIcon, Grid as GridIcon, CheckCircle2, Tag, Cloud } from "lucide-react";
+
+type ExtensionPost = {
+  id: string;
+  topic: string;
+  content: string;
+  keywords?: string;
+  minWords?: number;
+  actualWords?: number;
+  timestamp?: number;
+};
+
+function isExtensionPost(value: unknown): value is ExtensionPost {
+  if (!value || typeof value !== "object") return false;
+  const post = value as Record<string, unknown>;
+  return typeof post.id === "string" && post.id.length > 0 && post.id.length <= 128
+    && typeof post.topic === "string" && post.topic.length <= 200
+    && typeof post.content === "string" && post.content.length <= 2_000_000
+    && (post.keywords === undefined || (typeof post.keywords === "string" && post.keywords.length <= 2_000))
+    && (post.minWords === undefined || (typeof post.minWords === "number" && Number.isFinite(post.minWords)))
+    && (post.actualWords === undefined || (typeof post.actualWords === "number" && Number.isFinite(post.actualWords)))
+    && (post.timestamp === undefined || (typeof post.timestamp === "number" && Number.isFinite(post.timestamp)));
+}
+
+function extensionContentToSafeHtml(content: string) {
+  const plainText = new DOMParser().parseFromString(content, "text/html").body.textContent ?? "";
+  const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[character] ?? character);
+  return plainText.split(/\r?\n/).filter(Boolean).map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("") || "<p></p>";
+}
 
 export default function Dashboard() {
+  const { isLoaded, isSignedIn } = useUser();
   const [notes, setNotes] = useState<any[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [activeFolder, setActiveFolder] = useState<'all' | 'favorites' | 'trash' | 'archived'>('all');
@@ -21,11 +52,44 @@ export default function Dashboard() {
 
   // Quick Access Dropdown
   const [showFavDropdown, setShowFavDropdown] = useState(false);
+  const [notesLoaded, setNotesLoaded] = useState(false);
+  const [cloudSyncEnabled, setCloudSyncEnabled] = useState(false);
+  const [cloudSyncReady, setCloudSyncReady] = useState(false);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState("");
   
   // Animation refs
   const cardsRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
+
+  const mapCloudDocument = (document: any) => ({
+    id: document.externalId || document.id,
+    topic: document.title,
+    minWords: 0,
+    actualWords: document.wordCount,
+    content: document.content || "<p></p>",
+    plainText: document.plainText || "",
+    keywords: document.keywords || "",
+    timestamp: new Date(document.updatedAt).getTime(),
+    isFavorite: document.isFavorite,
+    isTrash: document.isTrash,
+    isArchived: document.isArchived,
+    trashedAt: document.trashedAt ? new Date(document.trashedAt).getTime() : undefined,
+  });
+
+  const cloudPayload = (note: any) => ({
+    externalId: note.id,
+    title: note.topic,
+    content: note.content,
+    plainText: note.plainText || "",
+    keywords: note.keywords || "",
+    wordCount: note.actualWords || 0,
+    isGenerated: note.minWords > 0,
+    isFavorite: Boolean(note.isFavorite),
+    isTrash: Boolean(note.isTrash),
+    isArchived: Boolean(note.isArchived),
+    trashedAt: note.trashedAt ? new Date(note.trashedAt).toISOString() : null,
+  });
 
   // Load Initial Data
   useEffect(() => {
@@ -59,20 +123,39 @@ export default function Dashboard() {
     const retention = localStorage.getItem("gemini-trash-retention");
     if (retention) setTrashRetention(parseInt(retention));
 
-    window.postMessage({ type: 'NOTEPAD_READY' }, '*');
+    const handleMessage = async (event: MessageEvent) => {
+      // Only the same-origin extension content script may deliver an imported
+      // post. Cross-origin windows cannot create notes or consume quota.
+      if (event.origin !== window.location.origin || event.source !== window) return;
+      const message = event.data as { type?: unknown; source?: unknown; payload?: unknown } | null;
+      if (message?.type === "BLOG_POST_DATA" && message.source === "gemmanote-extension" && isExtensionPost(message.payload)) {
+        const newNote = message.payload;
+        const existingNotes = JSON.parse(localStorage.getItem("gemini-notes") || "[]");
+        if (existingNotes.some((note: any) => note.id === newNote.id)) return;
 
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'BLOG_POST_DATA') {
-        const newNote = event.data.payload;
+        // Browser-extension generation occurs on Gemini, outside GemmaNote's
+        // server. Enforce the account quota before importing it into the app.
+        if (isSignedIn) {
+          const quotaResponse = await fetch('/api/generations/consume', { method: 'POST' });
+          if (!quotaResponse.ok) {
+            const quota = await quotaResponse.json().catch(() => ({ error: 'Generation limit reached' }));
+            setCloudSyncStatus(quota.error || 'Generation limit reached');
+            return;
+          }
+        }
+
         setNotes((prev) => {
           if (prev.find(n => n.id === newNote.id)) return prev;
           
-          const htmlContent = newNote.content.split('\n').map((p: string) => `<p>${p}</p>`).join('');
+          const htmlContent = extensionContentToSafeHtml(newNote.content);
           const noteToSave = { 
             ...newNote, 
             content: htmlContent, 
             plainText: newNote.content,
             keywords: newNote.keywords || "",
+            minWords: Math.max(0, Math.floor(newNote.minWords || 0)),
+            actualWords: Math.max(0, Math.floor(newNote.actualWords || 0)),
+            timestamp: newNote.timestamp && newNote.timestamp > 0 ? newNote.timestamp : Date.now(),
             isFavorite: false,
             isTrash: false,
             isArchived: false
@@ -89,8 +172,89 @@ export default function Dashboard() {
     };
 
     window.addEventListener('message', handleMessage);
+    setNotesLoaded(true);
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  }, [isSignedIn]);
+
+  // Do not ask the extension to hand over a generated post until Clerk has
+    // resolved the active session; this keeps quota checks deterministic.
+    useEffect(() => {
+    if (isLoaded) {
+      window.postMessage({ type: "GEMMANOTE_READY", source: "gemmanote-webapp" }, window.location.origin);
+    }
+  }, [isLoaded]);
+
+  // Pro and Agency users receive a server-backed copy of their notes. Local
+  // storage remains the source of truth for Free users and signed-out visitors.
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      setCloudSyncEnabled(false);
+      setCloudSyncReady(false);
+      return;
+    }
+
+    const loadAccount = async () => {
+      try {
+        const response = await fetch('/api/account');
+        if (!response.ok) throw new Error('Unable to load your plan');
+        const account = await response.json();
+        setCloudSyncEnabled(Boolean(account.features?.cloudSync));
+        setCloudSyncStatus(account.features?.cloudSync ? 'Cloud sync on' : 'Local-only plan');
+      } catch {
+        setCloudSyncStatus('Cloud sync unavailable');
+      }
+    };
+
+    void loadAccount();
+  }, [isLoaded, isSignedIn]);
+
+  useEffect(() => {
+    if (!cloudSyncEnabled || !isSignedIn) return;
+
+    const loadCloudDocuments = async () => {
+      try {
+        const response = await fetch('/api/documents');
+        if (!response.ok) throw new Error('Unable to load cloud documents');
+        const cloudDocuments = await response.json();
+        setNotes((previous) => {
+          const merged = new Map(previous.map((note) => [note.id, note]));
+          cloudDocuments.map(mapCloudDocument).forEach((note: any) => {
+            const local = merged.get(note.id);
+            if (!local || note.timestamp > local.timestamp) merged.set(note.id, note);
+          });
+          return Array.from(merged.values());
+        });
+        setCloudSyncStatus('Cloud synced');
+      } catch {
+        setCloudSyncStatus('Cloud sync unavailable');
+      } finally {
+        setCloudSyncReady(true);
+      }
+    };
+
+    void loadCloudDocuments();
+  }, [cloudSyncEnabled, isSignedIn]);
+
+  useEffect(() => {
+    if (!notesLoaded || !cloudSyncEnabled || !cloudSyncReady) return;
+
+    const timer = window.setTimeout(async () => {
+      try {
+        await Promise.all(notes.map((note) => fetch('/api/documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cloudPayload(note)),
+        }).then((response) => {
+          if (!response.ok) throw new Error('Save failed');
+        })));
+        setCloudSyncStatus('Cloud synced');
+      } catch {
+        setCloudSyncStatus('Changes saved locally');
+      }
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [notes, notesLoaded, cloudSyncEnabled, cloudSyncReady]);
 
   // Theme Toggle Effect
   useEffect(() => {
@@ -382,7 +546,7 @@ export default function Dashboard() {
       <aside className="sidebar">
         <div className="logo">
           <div className="logo-icon"><PenSquare size={20} /></div>
-          NotePad
+          GemmaNote
         </div>
         
         <button className="new-note-btn" onClick={handleNewNote}>
@@ -431,6 +595,11 @@ export default function Dashboard() {
             )}
           </div>
           <div className="header-actions">
+            {isLoaded && isSignedIn && cloudSyncStatus && (
+              <span title={cloudSyncStatus} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                <Cloud size={15} /> {cloudSyncStatus}
+              </span>
+            )}
             
             <button className="icon-btn" onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')} title="Toggle View">
               {viewMode === 'grid' ? <ListIcon size={18} /> : <GridIcon size={18} />}
@@ -457,6 +626,9 @@ export default function Dashboard() {
             <button className="icon-btn" onClick={() => setIsDarkMode(!isDarkMode)} title="Toggle Theme">
               {isDarkMode ? <Moon size={18} /> : <Sun size={18} />}
             </button>
+            <Link href="/settings" className="icon-btn" title={cloudSyncStatus || "Account settings"}>
+              <Settings size={18} />
+            </Link>
           </div>
         </header>
 

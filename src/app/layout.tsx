@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 import { ClerkProvider } from "@clerk/nextjs";
 
 export const metadata: Metadata = {
-  title: "NotePad AI",
+  title: "GemmaNote",
   description: "AI-powered text editor and blog generator",
 };
 

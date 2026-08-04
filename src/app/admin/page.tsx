@@ -1,110 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MoreVertical, ShieldAlert, ShieldCheck } from "lucide-react";
-
-type User = {
-  id: string;
-  clerkId: string;
-  email: string;
-  plan: string;
-  usageCount: number;
-  isSuspended: boolean;
-  createdAt: string;
-};
+import { ShieldAlert, ShieldCheck, Users } from "lucide-react";
+type User = { id: string; email: string; plan: string; usageCount: number; isSuspended: boolean; createdAt: string };
 
 export default function AdminPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch("/api/admin/users");
-      const data = await res.json();
-      setUsers(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const updateUser = async (id: string, updates: Partial<User>) => {
-    try {
-      await fetch("/api/admin/users", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, ...updates }),
-      });
-      fetchUsers();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  if (loading) return <div>Loading...</div>;
-
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">User Management</h1>
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-sm font-medium text-slate-500">
-              <th className="p-4">Email</th>
-              <th className="p-4">Plan</th>
-              <th className="p-4">Usage</th>
-              <th className="p-4">Status</th>
-              <th className="p-4">Joined</th>
-              <th className="p-4">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {users.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="p-8 text-center text-slate-500">No users found. (Sign up first!)</td>
-              </tr>
-            ) : null}
-            {users.map((user) => (
-              <tr key={user.id} className="text-sm text-slate-700 hover:bg-slate-50">
-                <td className="p-4">{user.email}</td>
-                <td className="p-4">
-                  <select 
-                    value={user.plan} 
-                    onChange={(e) => updateUser(user.id, { plan: e.target.value })}
-                    className="border border-slate-300 rounded px-2 py-1 bg-white text-xs font-semibold"
-                  >
-                    <option value="FREE">FREE</option>
-                    <option value="PRO">PRO</option>
-                    <option value="AGENCY">AGENCY</option>
-                  </select>
-                </td>
-                <td className="p-4">{user.usageCount} generations</td>
-                <td className="p-4">
-                  {user.isSuspended ? (
-                    <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-1 rounded text-xs font-bold"><ShieldAlert size={14}/> Suspended</span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded text-xs font-bold"><ShieldCheck size={14}/> Active</span>
-                  )}
-                </td>
-                <td className="p-4 text-slate-500">{new Date(user.createdAt).toLocaleDateString()}</td>
-                <td className="p-4">
-                  <button 
-                    onClick={() => updateUser(user.id, { isSuspended: !user.isSuspended })}
-                    className="text-xs font-medium text-slate-600 hover:text-indigo-600 underline"
-                  >
-                    {user.isSuspended ? "Unsuspend" : "Suspend"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  const [users, setUsers] = useState<User[]>([]); const [loading, setLoading] = useState(true);
+  const fetchUsers = async () => { try { const res = await fetch("/api/admin/users"); if (!res.ok) throw new Error("Unable to load users"); setUsers(await res.json()); } catch (err) { console.error(err); } finally { setLoading(false); } };
+  useEffect(() => { void fetchUsers(); }, []);
+  const updateUser = async (id: string, updates: Partial<User>) => { try { const res = await fetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...updates }) }); if (!res.ok) throw new Error("Unable to update user"); void fetchUsers(); } catch (err) { console.error(err); } };
+  if (loading) return <div className="grid min-h-48 place-items-center text-sm text-slate-500">Loading users…</div>;
+  return <div className="mx-auto max-w-6xl"><header className="mb-6 flex items-start gap-3"><span className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-indigo-500"><Users size={21} /></span><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-500">Administration</p><h1 className="mt-1 font-[Outfit] text-3xl font-bold tracking-[-0.03em] text-slate-800">People and plans</h1><p className="mt-1 text-sm text-slate-500">Manage account status and plan access.</p></div></header><div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(30,41,59,0.025)]"><table className="w-full min-w-[760px] text-left text-sm"><thead><tr className="border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-400"><th className="p-4">Email</th><th className="p-4">Plan</th><th className="p-4">Usage</th><th className="p-4">Status</th><th className="p-4">Joined</th><th className="p-4">Action</th></tr></thead><tbody className="divide-y divide-slate-100">{users.length === 0 ? <tr><td colSpan={6} className="p-10 text-center text-slate-400">No users found yet.</td></tr> : users.map((user) => <tr key={user.id} className="text-slate-600 transition hover:bg-slate-50"><td className="p-4 font-medium text-slate-700">{user.email}</td><td className="p-4"><select value={user.plan} onChange={(e) => void updateUser(user.id, { plan: e.target.value })} className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600 outline-none focus:border-indigo-400"><option value="FREE">FREE</option><option value="PRO">PRO</option><option value="AGENCY">AGENCY</option></select></td><td className="p-4">{user.usageCount} imports</td><td className="p-4">{user.isSuspended ? <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-600"><ShieldAlert size={14} />Suspended</span> : <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600"><ShieldCheck size={14} />Active</span>}</td><td className="p-4 text-slate-400">{new Date(user.createdAt).toLocaleDateString()}</td><td className="p-4"><button onClick={() => void updateUser(user.id, { isSuspended: !user.isSuspended })} className="rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600">{user.isSuspended ? "Unsuspend" : "Suspend"}</button></td></tr>)}</tbody></table></div></div>;
 }

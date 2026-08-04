@@ -1,16 +1,12 @@
+import Link from "next/link";
 import { SignUp } from "@clerk/nextjs";
+import { CheckCircle2, PenSquare, Sparkles } from "lucide-react";
+
+const appearance = { elements: { rootBox: "w-full", card: "w-full rounded-2xl border border-slate-200 bg-white shadow-[0_16px_38px_rgba(30,41,59,0.08)]", headerTitle: "font-[Outfit] text-slate-800", headerSubtitle: "text-slate-500", formButtonPrimary: "min-h-11 rounded-xl bg-indigo-500 text-sm normal-case shadow-none hover:bg-indigo-600", formFieldInput: "rounded-xl border-slate-200 focus:border-indigo-400 focus:ring-indigo-100", socialButtonsBlockButton: "min-h-11 rounded-xl border-slate-200 hover:bg-slate-50", footerActionLink: "text-indigo-600 hover:text-indigo-700", identityPreviewText: "text-slate-700" } };
 
 export default function Page() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f3f6fa] dark:bg-[#0d1117]">
-      <SignUp 
-        appearance={{
-          elements: {
-            formButtonPrimary: 'bg-indigo-500 hover:bg-indigo-600 text-sm normal-case',
-            card: 'shadow-xl border border-slate-100 rounded-2xl'
-          }
-        }}
-      />
-    </div>
-  );
+  return <main className="min-h-screen bg-[#f3f6fa] p-4 sm:p-6"><div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-6xl overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(30,41,59,0.07)] lg:grid-cols-[1.04fr_0.96fr]">
+    <section className="relative hidden overflow-hidden bg-slate-50 p-10 lg:flex lg:flex-col"><div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-indigo-100 blur-3xl" /><Link href="/" className="relative flex items-center gap-2.5 font-[Outfit] text-lg font-bold text-slate-800"><span className="grid h-9 w-9 place-items-center rounded-xl bg-indigo-400 text-white"><PenSquare size={18} /></span>GemmaNote</Link><div className="relative my-auto max-w-md"><span className="mb-6 inline-flex rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600"><Sparkles size={14} className="mr-1.5" />Start with a blank page, not a blank system</span><h1 className="font-[Outfit] text-5xl font-bold leading-[1.06] tracking-[-0.045em] text-slate-800">Make room for work you want to finish.</h1><ul className="mt-7 space-y-3 text-sm text-slate-500"><li className="flex items-center gap-2"><CheckCircle2 size={17} className="text-indigo-500" />A focused, local-first writing workspace</li><li className="flex items-center gap-2"><CheckCircle2 size={17} className="text-indigo-500" />Browser-assisted drafts when you need a starting point</li><li className="flex items-center gap-2"><CheckCircle2 size={17} className="text-indigo-500" />Upgrade only when your workflow grows</li></ul></div></section>
+    <section className="flex min-h-[calc(100vh-2rem)] items-center justify-center bg-[#f8fafc] px-3 py-10 sm:px-8"><div className="w-full max-w-md"><Link href="/" className="mb-10 flex items-center justify-center gap-2.5 font-[Outfit] text-lg font-bold text-slate-800 lg:hidden"><span className="grid h-9 w-9 place-items-center rounded-xl bg-indigo-400 text-white"><PenSquare size={18} /></span>GemmaNote</Link><SignUp appearance={appearance} /></div></section>
+  </div></main>;
 }

@@ -8,24 +8,102 @@ datasource db {
 }
 
 model User {
-  id          String     @id @default(uuid())
-  clerkId     String     @unique
-  email       String     @unique
-  plan        String     @default("FREE") // FREE, PRO, AGENCY
-  usageCount  Int        @default(0)
-  isSuspended Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  documents   Document[]
+  id                   String            @id @default(uuid())
+  clerkId              String            @unique
+  email                String            @unique
+  plan                 String            @default("FREE") // FREE, PRO, AGENCY
+  usageCount           Int               @default(0)
+  isSuspended          Boolean           @default(false)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  documents            Document[]
+  ownedWorkspaces      Workspace[]       @relation("WorkspaceOwner")
+  workspaceMemberships WorkspaceMember[]
+  usageRecords         UsageRecord[]
+  voicePresets         VoicePreset[]
+  supportRequests      SupportRequest[]
 }
 
 model Document {
-  id          String   @id @default(uuid())
-  title       String   @default("Untitled")
+  id          String     @id @default(uuid())
+  title       String     @default("Untitled")
   content     String? // Can store HTML or JSON
-  isGenerated Boolean  @default(false)
+  plainText   String     @default("")
+  keywords    String     @default("")
+  wordCount   Int        @default(0)
+  isGenerated Boolean    @default(false)
+  isFavorite  Boolean    @default(false)
+  isTrash     Boolean    @default(false)
+  isArchived  Boolean    @default(false)
+  trashedAt   DateTime?
+  externalId  String?
   userId      String? // Optional because unauthenticated users save locally
-  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspaceId String?
+  user        User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([userId, externalId])
+  @@index([workspaceId, updatedAt])
+}
+
+model Workspace {
+  id        String            @id @default(uuid())
+  name      String
+  ownerId   String
+  owner     User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members   WorkspaceMember[]
+  documents Document[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model WorkspaceMember {
+  workspaceId String
+  userId      String
+  role        String    @default("MEMBER") // OWNER, ADMIN, MEMBER
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@id([workspaceId, userId])
+  @@index([userId])
+}
+
+model UsageRecord {
+  id          String   @id @default(uuid())
+  userId      String
+  periodStart DateTime
+  count       Int      @default(0)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@unique([userId, periodStart])
+}
+
+model VoicePreset {
+  id           String   @id @default(uuid())
+  userId       String
+  name         String
+  instructions String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+}
+
+model SupportRequest {
+  id        String   @id @default(uuid())
+  userId    String
+  subject   String
+  message   String
+  status    String   @default("OPEN") // OPEN, IN_PROGRESS, CLOSED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

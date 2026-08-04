@@ -1,0 +1,65 @@
+import { ApiError, errorResponse, hasMinimumPlan, requireAppUser, requireMinimumPlan } from "@/lib/app-auth";
+import { documentDto, parseDocumentInput, type DocumentInput } from "@/lib/documents";
+import { prisma } from "@/lib/prisma";
+import { getPersonalWorkspace, requireWorkspaceAccess } from "@/lib/workspaces";
+
+export const dynamic = "force-dynamic";
+
+async function documentWorkspace(userId: string, plan: string, requestedWorkspaceId: string | null) {
+  if (!requestedWorkspaceId) return null;
+  const workspace = await requireWorkspaceAccess(userId, requestedWorkspaceId);
+
+  if (workspace.ownerId !== userId && !hasMinimumPlan(plan, "AGENCY")) {
+    throw new ApiError(403, "Agency plan required for shared workspaces");
+  }
+
+  return workspace.id;
+}
+
+export async function GET(request: Request) {
+  try {
+    const user = await requireAppUser();
+    requireMinimumPlan(user, "PRO");
+    const workspaceId = new URL(request.url).searchParams.get("workspaceId");
+    const selectedWorkspaceId = workspaceId
+      ? await documentWorkspace(user.id, user.plan, workspaceId)
+      : (await getPersonalWorkspace(user)).id;
+
+    const documents = await prisma.document.findMany({
+      where: { workspaceId: selectedWorkspaceId },
+      orderBy: { updatedAt: "desc" },
+    });
+    return Response.json(documents.map(documentDto));
+  } catch (error) {
+    return errorResponse(error, "Failed to load documents");
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const user = await requireAppUser();
+    requireMinimumPlan(user, "PRO");
+    const body: unknown = await request.json();
+    if (!body || typeof body !== "object") {
+      return Response.json({ error: "Invalid request body" }, { status: 400 });
+    }
+
+    const input = parseDocumentInput(body as DocumentInput);
+    const workspaceId = input.workspaceId
+      ? await documentWorkspace(user.id, user.plan, input.workspaceId)
+      : (await getPersonalWorkspace(user)).id;
+    const data = { ...input, externalId: input.externalId ?? undefined, workspaceId, userId: user.id };
+
+    const document = input.externalId
+      ? await prisma.document.upsert({
+          where: { userId_externalId: { userId: user.id, externalId: input.externalId } },
+          create: data,
+          update: { ...data, externalId: input.externalId },
+        })
+      : await prisma.document.create({ data });
+
+    return Response.json(documentDto(document), { status: 201 });
+  } catch (error) {
+    return errorResponse(error, "Failed to save document");
+  }
+}

@@ -1,145 +1,84 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Zap, CheckCircle2, LayoutGrid, FileText } from "lucide-react";
+import { ArrowRight, CheckCircle2, FileText, LayoutGrid, Sparkles, Zap } from "lucide-react";
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const features = [
+  { icon: Zap, title: "Generate in your flow", desc: "Bring browser-assisted drafts straight into your writing space, without breaking focus." },
+  { icon: LayoutGrid, title: "A calmer content library", desc: "Keep favorites, archives, search, and drafts in one deliberately simple workspace." },
+  { icon: FileText, title: "Edit with a clear signal", desc: "Use word count, reading time, keywords, and an SEO check beside the writing itself." },
+];
+
+const plans = [
+  { name: "Free", price: "$0", description: "For a focused local-first writing practice.", features: ["Local browser storage", "Focused rich-text editor", "Markdown export", "10 imports each month"], action: "Start free", href: "/editor" },
+  { name: "Pro", price: "$12", description: "For writers working across more than one device.", features: ["Cloud sync across devices", "200 imports each month", "Priority support", "Everything in Free"], action: "Choose Pro", href: "/sign-up", featured: true },
+  { name: "Agency", price: "$49", description: "For teams with repeatable client workflows.", features: ["Unlimited imports", "Shared workspaces", "Custom voice presets", "Everything in Pro"], action: "Choose Agency", href: "/sign-up" },
+];
+
 export default function LandingPage() {
-  const heroRef = useRef(null);
-  const featuresRef = useRef(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const featuresRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    // Hero Animation
-    gsap.fromTo(
-      ".hero-elem",
-      { opacity: 0, y: 30 },
-      { opacity: 1, y: 0, duration: 0.8, stagger: 0.2, ease: "power3.out" }
-    );
-
-    // Features Scroll Animation
-    gsap.fromTo(
-      ".feature-card",
-      { opacity: 0, y: 40 },
-      { 
-        opacity: 1, y: 0, 
-        duration: 0.6, 
-        stagger: 0.15, 
-        ease: "power2.out",
-        scrollTrigger: {
-          trigger: featuresRef.current,
-          start: "top 80%",
-        }
-      }
-    );
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(".hero-elem", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.65, stagger: 0.12, ease: "power3.out" });
+      gsap.fromTo(".feature-card", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.12, ease: "power2.out", scrollTrigger: { trigger: featuresRef.current, start: "top 82%" } });
+    });
+    return () => ctx.revert();
   }, []);
 
   return (
     <div className="overflow-hidden">
-      {/* Hero Section */}
-      <section ref={heroRef} className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 px-6">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-100 via-slate-50 to-white"></div>
-        <div className="container mx-auto text-center max-w-4xl">
-          <div className="hero-elem inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-medium mb-8 border border-indigo-200">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-            </span>
-            NotePad AI v2.0 is Live
+      <section ref={heroRef} className="relative px-6 pb-20 pt-20 sm:pb-28 sm:pt-28">
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_-10%,#e0e7ff_0%,#f3f6fa_42%,#f8fafc_100%)]" />
+        <div className="mx-auto max-w-5xl text-center">
+          <div className="hero-elem mb-7 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-white/80 px-3.5 py-2 text-xs font-semibold text-indigo-600 shadow-sm">
+            <Sparkles size={14} aria-hidden="true" /> A quieter way to make progress
           </div>
-          <h1 className="hero-elem text-5xl lg:text-7xl font-extrabold tracking-tight text-slate-900 mb-8 leading-tight">
-            Write <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">10x Faster</span> with AI-Powered Intelligence.
+          <h1 className="hero-elem mx-auto max-w-4xl font-[Outfit] text-5xl font-bold leading-[1.04] tracking-[-0.045em] text-slate-800 sm:text-6xl lg:text-7xl">
+            A focused home for every <span className="text-indigo-500">good draft.</span>
           </h1>
-          <p className="hero-elem text-lg lg:text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
-            The minimal, distraction-free text editor that understands your intent. Generate high-ranking blogs, humanize content, and organize everything in one place.
+          <p className="hero-elem mx-auto mt-7 max-w-2xl text-base leading-7 text-slate-500 sm:text-lg">
+            GemmaNote combines browser-assisted writing, a distraction-free editor, and a tidy content library so your ideas can move from first line to finished work.
           </p>
-          <div className="hero-elem flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/editor" className="w-full sm:w-auto inline-flex justify-center items-center gap-2 bg-indigo-600 text-white px-8 py-4 rounded-full font-semibold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/30">
-              Start Writing for Free <ArrowRight size={18} />
+          <div className="hero-elem mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link href="/editor" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(99,102,241,0.2)] transition hover:bg-indigo-600">
+              Open your workspace <ArrowRight size={17} aria-hidden="true" />
             </Link>
-            <Link href="#features" className="w-full sm:w-auto inline-flex justify-center items-center gap-2 bg-white text-slate-700 px-8 py-4 rounded-full font-semibold border border-slate-200 hover:bg-slate-50 transition-all">
-              View Features
+            <Link href="#features" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600">
+              Explore the workflow
             </Link>
+          </div>
+          <div className="hero-elem mx-auto mt-14 grid max-w-3xl grid-cols-3 divide-x divide-slate-200 rounded-2xl border border-slate-200 bg-white/80 px-3 py-4 text-left shadow-[0_8px_30px_rgba(30,41,59,0.04)] backdrop-blur">
+            {[['Local-first', 'Your drafts stay yours'], ['Cloud when ready', 'Sync on Pro and Agency'], ['Made for momentum', 'Less UI, more writing']].map(([label, detail]) => <div key={label} className="px-3 sm:px-5"><p className="text-xs font-semibold text-slate-700">{label}</p><p className="mt-1 hidden text-xs text-slate-400 sm:block">{detail}</p></div>)}
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" ref={featuresRef} className="py-24 bg-white px-6">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">Everything you need to scale content</h2>
-            <p className="text-slate-600">Built for bloggers, agencies, and marketers who want premium quality without the premium time cost.</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { icon: Zap, title: "Instant Generation", desc: "Generate up to 10 SEO-optimized blog posts simultaneously directly from your browser extension." },
-              { icon: LayoutGrid, title: "Intelligent Organization", desc: "Sort by favorites, search by intent, and manage your trash with automatic retention rules." },
-              { icon: FileText, title: "Humanized Output", desc: "Bypass AI detectors with our proprietary humanization prompts that ensure natural tone and flow." }
-            ].map((feature, i) => (
-              <div key={i} className="feature-card p-8 rounded-2xl bg-slate-50 border border-slate-100 hover:border-indigo-100 hover:shadow-xl transition-all duration-300 group">
-                <div className="w-12 h-12 rounded-xl bg-white shadow-sm border border-slate-200 flex items-center justify-center mb-6 text-indigo-600 group-hover:scale-110 transition-transform">
-                  <feature.icon size={24} />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">{feature.title}</h3>
-                <p className="text-slate-600 leading-relaxed">{feature.desc}</p>
-              </div>
-            ))}
+      <section id="features" ref={featuresRef} className="border-y border-slate-200 bg-white px-6 py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="max-w-xl"><p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-500">Built for the writing day</p><h2 className="mt-3 font-[Outfit] text-3xl font-bold tracking-[-0.03em] text-slate-800 sm:text-4xl">A workspace that stays out of your way.</h2></div>
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {features.map((feature) => <article key={feature.title} className="feature-card rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-[0_4px_16px_rgba(30,41,59,0.025)] transition hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white hover:shadow-[0_12px_28px_rgba(99,102,241,0.1)]"><div className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-indigo-500"><feature.icon size={21} aria-hidden="true" /></div><h3 className="mt-6 font-[Outfit] text-xl font-bold text-slate-800">{feature.title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{feature.desc}</p></article>)}
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-24 bg-slate-50 px-6">
-        <div className="container mx-auto max-w-5xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">Simple, transparent pricing</h2>
-            <p className="text-slate-600">Start for free, upgrade when you need more power.</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Free */}
-            <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col">
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">Free</h3>
-              <p className="text-slate-500 text-sm mb-6">Perfect for trying out NotePad AI.</p>
-              <div className="mb-6"><span className="text-4xl font-bold">$0</span><span className="text-slate-500">/mo</span></div>
-              <ul className="space-y-4 mb-8 flex-1">
-                {["Local browser storage", "Basic text editing", "Markdown export", "Standard generation"].map((f, i) => (
-                  <li key={i} className="flex items-center gap-3 text-slate-600 text-sm"><CheckCircle2 size={18} className="text-indigo-500 shrink-0" /> {f}</li>
-                ))}
-              </ul>
-              <Link href="/sign-up" className="w-full block text-center py-3 rounded-xl border-2 border-indigo-100 text-indigo-600 font-semibold hover:bg-indigo-50 transition-colors">Get Started</Link>
-            </div>
-            
-            {/* Pro */}
-            <div className="p-8 rounded-3xl bg-indigo-900 text-white shadow-2xl relative transform md:-translate-y-4 flex flex-col border border-indigo-700">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-indigo-400 to-purple-400 text-white text-xs font-bold px-3 py-1 rounded-full">MOST POPULAR</div>
-              <h3 className="text-xl font-semibold mb-2">Pro</h3>
-              <p className="text-indigo-200 text-sm mb-6">For serious bloggers and creators.</p>
-              <div className="mb-6"><span className="text-4xl font-bold">$12</span><span className="text-indigo-300">/mo</span></div>
-              <ul className="space-y-4 mb-8 flex-1">
-                {["Cloud Sync across devices", "Advanced SEO Analyzer", "Intent & Style Selection", "Priority Support"].map((f, i) => (
-                  <li key={i} className="flex items-center gap-3 text-indigo-100 text-sm"><CheckCircle2 size={18} className="text-purple-400 shrink-0" /> {f}</li>
-                ))}
-              </ul>
-              <Link href="/sign-up" className="w-full block text-center py-3 rounded-xl bg-white text-indigo-900 font-semibold hover:bg-indigo-50 transition-colors">Upgrade to Pro</Link>
-            </div>
-
-            {/* Agency */}
-            <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col">
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">Agency</h3>
-              <p className="text-slate-500 text-sm mb-6">For teams generating content at scale.</p>
-              <div className="mb-6"><span className="text-4xl font-bold">$49</span><span className="text-slate-500">/mo</span></div>
-              <ul className="space-y-4 mb-8 flex-1">
-                {["Everything in Pro", "Unlimited Generations", "Custom Team Workspaces", "API Access", "Custom Voice Presets"].map((f, i) => (
-                  <li key={i} className="flex items-center gap-3 text-slate-600 text-sm"><CheckCircle2 size={18} className="text-indigo-500 shrink-0" /> {f}</li>
-                ))}
-              </ul>
-              <Link href="/sign-up" className="w-full block text-center py-3 rounded-xl border-2 border-indigo-100 text-indigo-600 font-semibold hover:bg-indigo-50 transition-colors">Contact Sales</Link>
-            </div>
-          </div>
+      <section id="pricing" className="bg-slate-50 px-6 py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl"><div className="text-center"><p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-500">Simple plans</p><h2 className="mt-3 font-[Outfit] text-3xl font-bold tracking-[-0.03em] text-slate-800 sm:text-4xl">Choose the room you need to grow.</h2></div>
+          <div className="mt-12 grid gap-5 lg:grid-cols-3">{plans.map((plan) => <article key={plan.name} className={`relative flex flex-col rounded-2xl border p-7 ${plan.featured ? "border-indigo-200 bg-indigo-500 text-white shadow-[0_16px_34px_rgba(99,102,241,0.22)]" : "border-slate-200 bg-white text-slate-800 shadow-[0_4px_16px_rgba(30,41,59,0.03)]"}`}>
+            {plan.featured && <span className="absolute -top-3 left-6 rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-indigo-600 shadow-sm">Most popular</span>}
+            <h3 className="font-[Outfit] text-xl font-bold">{plan.name}</h3><p className={`mt-2 min-h-10 text-sm leading-5 ${plan.featured ? "text-indigo-100" : "text-slate-500"}`}>{plan.description}</p><p className="mt-6 font-[Outfit] text-4xl font-bold">{plan.price}<span className={`ml-1 text-sm font-medium ${plan.featured ? "text-indigo-100" : "text-slate-400"}`}>/ month</span></p>
+            <ul className="mt-7 flex-1 space-y-3">{plan.features.map((feature) => <li key={feature} className={`flex items-center gap-2.5 text-sm ${plan.featured ? "text-white" : "text-slate-600"}`}><CheckCircle2 size={17} className={plan.featured ? "text-white" : "text-indigo-500"} aria-hidden="true" />{feature}</li>)}</ul>
+            <Link href={plan.href} className={`mt-8 inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition ${plan.featured ? "bg-white text-indigo-600 hover:bg-indigo-50" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"}`}>{plan.action}</Link>
+          </article>)}</div>
         </div>
       </section>
     </div>

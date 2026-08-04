@@ -16,6 +16,36 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Admin access
+
+The admin area and its API require a signed-in Clerk user whose **public metadata**
+contains the following value:
+
+```json
+{
+  "role": "admin"
+}
+```
+
+Set this for trusted administrators in the Clerk Dashboard under the user's public
+metadata. Both the `/admin` UI and `/api/admin/*` routes verify this value on the
+server, so a signed-in non-admin cannot access or modify user-management data.
+
+## SaaS capabilities
+
+- **Free:** local browser notes and 10 tracked generation credits per calendar month.
+- **Pro:** everything in Free plus cloud document sync and advanced editor capabilities.
+- **Agency:** everything in Pro plus custom workspaces, existing-user workspace membership,
+  and reusable voice presets.
+
+Plans and quotas are enforced on the server. Pro and Agency editor sessions automatically
+sync their notes to the cloud; Free and signed-out sessions remain local-first.
+
+### Support workflow
+
+Authenticated users can open a support request in **Settings**. Administrators can
+review and update its status at `/admin/support`.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
