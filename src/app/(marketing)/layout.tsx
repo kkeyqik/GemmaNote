@@ -1,9 +1,11 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { PenSquare } from "lucide-react";
-import { UserButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 
-export default function MarketingLayout({ children }: { children: ReactNode }) {
+export default async function MarketingLayout({ children }: { children: ReactNode }) {
+  const { userId } = await auth();
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md">
@@ -22,20 +24,23 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-4">
-            <SignedOut>
-              <Link href="/sign-in" className="text-sm font-medium text-slate-600 hover:text-slate-900 hidden md:block">
-                Log in
-              </Link>
-              <Link href="/sign-up" className="text-sm font-medium bg-slate-900 text-white px-4 py-2 rounded-full hover:bg-slate-800 transition-colors shadow-md">
-                Get Started
-              </Link>
-            </SignedOut>
-            <SignedIn>
-              <Link href="/editor" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hidden md:block">
-                Go to Dashboard
-              </Link>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
+            {!userId ? (
+              <>
+                <Link href="/sign-in" className="text-sm font-medium text-slate-600 hover:text-slate-900 hidden md:block">
+                  Log in
+                </Link>
+                <Link href="/sign-up" className="text-sm font-medium bg-slate-900 text-white px-4 py-2 rounded-full hover:bg-slate-800 transition-colors shadow-md">
+                  Get Started
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/editor" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hidden md:block">
+                  Go to Dashboard
+                </Link>
+                <UserButton afterSignOutUrl="/" />
+              </>
+            )}
           </div>
         </div>
       </header>

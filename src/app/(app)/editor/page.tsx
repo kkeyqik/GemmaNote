@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import gsap from "gsap";
-import Editor from "../components/Editor";
+import Editor from "../../../components/Editor";
 import { PenSquare, LayoutGrid, Star, Trash2, Archive, Plus, Search, Sun, Moon, Bell, Settings, FileText, BarChart2, Save, Download, RotateCcw, XCircle, Trash, List as ListIcon, Grid as GridIcon, CheckCircle2, Tag } from "lucide-react";
 
 export default function Dashboard() {
