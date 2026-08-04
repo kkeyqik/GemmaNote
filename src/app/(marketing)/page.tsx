@@ -105,13 +105,12 @@ export default function LandingPage() {
           {/* Stats / Mini Features */}
           <div className="hero-elem mx-auto mt-20 grid max-w-4xl grid-cols-1 gap-px divide-y divide-slate-200/50 overflow-hidden rounded-3xl border border-slate-200/50 bg-white/40 shadow-xl shadow-slate-200/20 backdrop-blur-xl sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             {[
-              ['Local-first', 'Your drafts stay yours', ShieldCheck], 
-              ['Cloud when ready', 'Sync on Pro and Agency', Zap], 
-              ['Made for momentum', 'Less UI, more writing', LayoutGrid]
-            ].map(([label, detail, Icon]) => (
-              <div key={label as string} className="flex flex-col items-center px-6 py-8 text-center transition-colors hover:bg-white/60">
+              { label: 'Local-first', detail: 'Your drafts stay yours', Icon: ShieldCheck }, 
+              { label: 'Cloud when ready', detail: 'Sync on Pro and Agency', Icon: Zap }, 
+              { label: 'Made for momentum', detail: 'Less UI, more writing', Icon: LayoutGrid }
+            ].map(({ label, detail, Icon }) => (
+              <div key={label} className="flex flex-col items-center px-6 py-8 text-center transition-colors hover:bg-white/60">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100/50 text-indigo-600">
-                  {/* @ts-ignore */}
                   <Icon size={24} />
                 </div>
                 <p className="text-base font-bold text-slate-900">{label}</p>
