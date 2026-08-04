@@ -38,7 +38,7 @@ export default async function MarketingLayout({ children }: { children: ReactNod
                 <Link href="/editor" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hidden md:block">
                   Go to Dashboard
                 </Link>
-                <UserButton afterSignOutUrl="/" />
+                <UserButton />
               </>
             )}
           </div>

@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </Link>
         </nav>
         <div className="p-4 border-t flex items-center gap-3">
-          <UserButton afterSignOutUrl="/" />
+          <UserButton />
           <span className="text-sm font-medium text-slate-700">Admin</span>
         </div>
       </aside>
