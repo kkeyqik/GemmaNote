@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import gsap from "gsap";
 import Link from "next/link";
-import { useUser } from "@clerk/nextjs";
 import Editor from "../../../components/Editor";
 import { PenSquare, LayoutGrid, Star, Trash2, Archive, Plus, Search, Sun, Moon, Settings, FileText, BarChart2, Download, RotateCcw, XCircle, Trash, List as ListIcon, Grid as GridIcon, CheckCircle2, Tag, Cloud } from "lucide-react";
 
@@ -36,7 +35,6 @@ function extensionContentToSafeHtml(content: string) {
 }
 
 export default function Dashboard() {
-  const { isLoaded, isSignedIn } = useUser();
   const [notes, setNotes] = useState<any[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [activeFolder, setActiveFolder] = useState<'all' | 'favorites' | 'trash' | 'archived'>('all');
@@ -53,9 +51,7 @@ export default function Dashboard() {
   // Quick Access Dropdown
   const [showFavDropdown, setShowFavDropdown] = useState(false);
   const [notesLoaded, setNotesLoaded] = useState(false);
-  const [cloudSyncEnabled, setCloudSyncEnabled] = useState(false);
-  const [cloudSyncReady, setCloudSyncReady] = useState(false);
-  const [cloudSyncStatus, setCloudSyncStatus] = useState("");
+  const [cloudSyncStatus, setCloudSyncStatus] = useState("Loading...");
   
   // Animation refs
   const cardsRef = useRef<HTMLDivElement>(null);
@@ -91,29 +87,8 @@ export default function Dashboard() {
     trashedAt: note.trashedAt ? new Date(note.trashedAt).toISOString() : null,
   });
 
-  // Load Initial Data
+  // Load initial data from cloud
   useEffect(() => {
-    const saved = localStorage.getItem("gemini-notes");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Auto-delete trash based on retention
-      const retentionDays = parseInt(localStorage.getItem("gemini-trash-retention") || "30");
-      const now = Date.now();
-      const filtered = parsed.filter((n: any) => {
-        if (n.isTrash && n.trashedAt) {
-          const daysInTrash = (now - n.trashedAt) / (1000 * 60 * 60 * 24);
-          if (daysInTrash > retentionDays) return false;
-        }
-        // Migrate old color stars to boolean if needed
-        if (typeof n.isFavorite === 'string') {
-          n.isFavorite = n.isFavorite !== 'none';
-        }
-        return true;
-      });
-      setNotes(filtered);
-      // Pad remains closed initially, so we do not set activeNoteId
-    }
-    
     const savedTheme = localStorage.getItem("gemini-theme");
     if (savedTheme === 'dark') setIsDarkMode(true);
 
@@ -123,25 +98,43 @@ export default function Dashboard() {
     const retention = localStorage.getItem("gemini-trash-retention");
     if (retention) setTrashRetention(parseInt(retention));
 
+    const loadCloudNotes = async () => {
+      try {
+        const response = await fetch('/api/documents');
+        if (!response.ok) throw new Error('Unable to load documents');
+        const cloudDocuments = await response.json();
+        const retentionDays = parseInt(localStorage.getItem("gemini-trash-retention") || "30");
+        const now = Date.now();
+        const mapped = cloudDocuments.map(mapCloudDocument).filter((n: any) => {
+          if (n.isTrash && n.trashedAt) {
+            const daysInTrash = (now - n.trashedAt) / (1000 * 60 * 60 * 24);
+            if (daysInTrash > retentionDays) return false;
+          }
+          return true;
+        });
+        setNotes(mapped);
+        setCloudSyncStatus('Cloud synced');
+      } catch {
+        setCloudSyncStatus('Unable to load notes');
+      } finally {
+        setNotesLoaded(true);
+      }
+    };
+
+    void loadCloudNotes();
+
     const handleMessage = async (event: MessageEvent) => {
-      // Only the same-origin extension content script may deliver an imported
-      // post. Cross-origin windows cannot create notes or consume quota.
       if (event.origin !== window.location.origin || event.source !== window) return;
       const message = event.data as { type?: unknown; source?: unknown; payload?: unknown } | null;
       if (message?.type === "BLOG_POST_DATA" && message.source === "gemmanote-extension" && isExtensionPost(message.payload)) {
         const newNote = message.payload;
-        const existingNotes = JSON.parse(localStorage.getItem("gemini-notes") || "[]");
-        if (existingNotes.some((note: any) => note.id === newNote.id)) return;
 
-        // Browser-extension generation occurs on Gemini, outside GemmaNote's
-        // server. Enforce the account quota before importing it into the app.
-        if (isSignedIn) {
-          const quotaResponse = await fetch('/api/generations/consume', { method: 'POST' });
-          if (!quotaResponse.ok) {
-            const quota = await quotaResponse.json().catch(() => ({ error: 'Generation limit reached' }));
-            setCloudSyncStatus(quota.error || 'Generation limit reached');
-            return;
-          }
+        // Enforce the account quota before importing
+        const quotaResponse = await fetch('/api/generations/consume', { method: 'POST' });
+        if (!quotaResponse.ok) {
+          const quota = await quotaResponse.json().catch(() => ({ error: 'Generation limit reached' }));
+          setCloudSyncStatus(quota.error || 'Generation limit reached');
+          return;
         }
 
         setNotes((prev) => {
@@ -161,86 +154,54 @@ export default function Dashboard() {
             isArchived: false
           };
           
-          const updated = [noteToSave, ...prev];
-          localStorage.setItem("gemini-notes", JSON.stringify(updated));
-          return updated;
+          return [noteToSave, ...prev];
         });
-        // Auto-open the newly received note
         setActiveNoteId(newNote.id);
         setActiveFolder('all');
       }
     };
 
     window.addEventListener('message', handleMessage);
-    setNotesLoaded(true);
     return () => window.removeEventListener('message', handleMessage);
-  }, [isSignedIn]);
+  }, []);
 
-  // Do not ask the extension to hand over a generated post until Clerk has
-    // resolved the active session; this keeps quota checks deterministic.
-    useEffect(() => {
-    if (isLoaded) {
-      window.postMessage({ type: "GEMMANOTE_READY", source: "gemmanote-webapp" }, window.location.origin);
-    }
-  }, [isLoaded]);
-
-  // Pro and Agency users receive a server-backed copy of their notes. Local
-  // storage remains the source of truth for Free users and signed-out visitors.
+  // Signal extension that the webapp is ready to receive posts
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) {
-      setCloudSyncEnabled(false);
-      setCloudSyncReady(false);
+    window.postMessage({ type: "GEMMANOTE_READY", source: "gemmanote-webapp" }, window.location.origin);
+  }, []);
+
+  // Sync notes to cloud on change (debounced)
+  const prevNotesRef = useRef<any[]>([]);
+  const dirtyNotesRef = useRef<Map<string, any>>(new Map());
+
+  useEffect(() => {
+    if (!notesLoaded) {
+      prevNotesRef.current = notes;
       return;
     }
 
-    const loadAccount = async () => {
-      try {
-        const response = await fetch('/api/account');
-        if (!response.ok) throw new Error('Unable to load your plan');
-        const account = await response.json();
-        setCloudSyncEnabled(Boolean(account.features?.cloudSync));
-        setCloudSyncStatus(account.features?.cloudSync ? 'Cloud sync on' : 'Local-only plan');
-      } catch {
-        setCloudSyncStatus('Cloud sync unavailable');
+    const prevNotesMap = new Map(prevNotesRef.current.map(n => [n.id, n]));
+    
+    notes.forEach(note => {
+      const prev = prevNotesMap.get(note.id);
+      if (!prev || prev !== note) {
+        dirtyNotesRef.current.set(note.id, note);
       }
-    };
+    });
+    
+    prevNotesRef.current = notes;
 
-    void loadAccount();
-  }, [isLoaded, isSignedIn]);
-
-  useEffect(() => {
-    if (!cloudSyncEnabled || !isSignedIn) return;
-
-    const loadCloudDocuments = async () => {
-      try {
-        const response = await fetch('/api/documents');
-        if (!response.ok) throw new Error('Unable to load cloud documents');
-        const cloudDocuments = await response.json();
-        setNotes((previous) => {
-          const merged = new Map(previous.map((note) => [note.id, note]));
-          cloudDocuments.map(mapCloudDocument).forEach((note: any) => {
-            const local = merged.get(note.id);
-            if (!local || note.timestamp > local.timestamp) merged.set(note.id, note);
-          });
-          return Array.from(merged.values());
-        });
-        setCloudSyncStatus('Cloud synced');
-      } catch {
-        setCloudSyncStatus('Cloud sync unavailable');
-      } finally {
-        setCloudSyncReady(true);
-      }
-    };
-
-    void loadCloudDocuments();
-  }, [cloudSyncEnabled, isSignedIn]);
-
-  useEffect(() => {
-    if (!notesLoaded || !cloudSyncEnabled || !cloudSyncReady) return;
+    if (dirtyNotesRef.current.size === 0) return;
 
     const timer = window.setTimeout(async () => {
+      if (dirtyNotesRef.current.size === 0) return;
+      
+      const notesToSync = Array.from(dirtyNotesRef.current.values());
+      dirtyNotesRef.current.clear();
+      
       try {
-        await Promise.all(notes.map((note) => fetch('/api/documents', {
+        setCloudSyncStatus('Saving...');
+        await Promise.all(notesToSync.map((note) => fetch('/api/documents', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(cloudPayload(note)),
@@ -249,12 +210,17 @@ export default function Dashboard() {
         })));
         setCloudSyncStatus('Cloud synced');
       } catch {
-        setCloudSyncStatus('Changes saved locally');
+        notesToSync.forEach(note => {
+          if (!dirtyNotesRef.current.has(note.id)) {
+            dirtyNotesRef.current.set(note.id, note);
+          }
+        });
+        setCloudSyncStatus('Sync failed — retrying...');
       }
     }, 1000);
 
     return () => window.clearTimeout(timer);
-  }, [notes, notesLoaded, cloudSyncEnabled, cloudSyncReady]);
+  }, [notes, notesLoaded]);
 
   // Theme Toggle Effect
   useEffect(() => {
@@ -327,7 +293,6 @@ export default function Dashboard() {
     };
     setNotes(prev => {
       const updated = [newNote, ...prev];
-      localStorage.setItem("gemini-notes", JSON.stringify(updated));
       return updated;
     });
     setActiveNoteId(newNote.id);
@@ -342,7 +307,6 @@ export default function Dashboard() {
       const updated = prev.map(n => 
         n.id === activeNoteId ? { ...n, content: html, actualWords: words, plainText: text } : n
       );
-      localStorage.setItem("gemini-notes", JSON.stringify(updated));
       return updated;
     });
   };
@@ -353,7 +317,6 @@ export default function Dashboard() {
       const updated = prev.map(n => 
         n.id === activeNoteId ? { ...n, topic: e.target.value } : n
       );
-      localStorage.setItem("gemini-notes", JSON.stringify(updated));
       return updated;
     });
   };
@@ -364,7 +327,6 @@ export default function Dashboard() {
       const updated = prev.map(n => 
         n.id === activeNoteId ? { ...n, keywords: e.target.value } : n
       );
-      localStorage.setItem("gemini-notes", JSON.stringify(updated));
       return updated;
     });
   };
@@ -438,7 +400,6 @@ export default function Dashboard() {
   const toggleFavorite = (id: string) => {
     setNotes(prev => {
       const updated = prev.map(n => n.id === id ? { ...n, isFavorite: !n.isFavorite } : n);
-      localStorage.setItem("gemini-notes", JSON.stringify(updated));
       return updated;
     });
   };
@@ -446,7 +407,6 @@ export default function Dashboard() {
   const handleTrashNote = (id: string) => {
     setNotes(prev => {
       const updated = prev.map(n => n.id === id ? { ...n, isTrash: true, trashedAt: Date.now() } : n);
-      localStorage.setItem("gemini-notes", JSON.stringify(updated));
       return updated;
     });
     // If not in trash view, close it
@@ -458,7 +418,6 @@ export default function Dashboard() {
   const restoreNote = (id: string) => {
     setNotes(prev => {
       const updated = prev.map(n => n.id === id ? { ...n, isTrash: false, isArchived: false } : n);
-      localStorage.setItem("gemini-notes", JSON.stringify(updated));
       return updated;
     });
   };
@@ -466,7 +425,6 @@ export default function Dashboard() {
   const permDeleteNote = (id: string) => {
     setNotes(prev => {
       const updated = prev.filter(n => n.id !== id);
-      localStorage.setItem("gemini-notes", JSON.stringify(updated));
       return updated;
     });
     setActiveNoteId(null);
@@ -475,7 +433,6 @@ export default function Dashboard() {
   const emptyTrash = () => {
     setNotes(prev => {
       const updated = prev.filter(n => !n.isTrash);
-      localStorage.setItem("gemini-notes", JSON.stringify(updated));
       return updated;
     });
     setActiveNoteId(null);
@@ -484,7 +441,6 @@ export default function Dashboard() {
   const toggleArchive = (id: string) => {
     setNotes(prev => {
       const updated = prev.map(n => n.id === id ? { ...n, isArchived: !n.isArchived } : n);
-      localStorage.setItem("gemini-notes", JSON.stringify(updated));
       return updated;
     });
     if (activeFolder !== 'archived') setActiveNoteId(null);
@@ -573,6 +529,15 @@ export default function Dashboard() {
             </li>
           </ul>
         </nav>
+
+        <div style={{ marginTop: 'auto', padding: '0 24px 24px 24px' }}>
+          <a href="/extension.zip" download className="btn-primary" style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', width: '100%', textDecoration: 'none', background: 'var(--accent)', color: '#fff', borderRadius: '8px', padding: '10px' }}>
+            <Download size={16} /> Get Extension
+          </a>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '8px' }}>
+            Unzip and load unpacked in Chrome
+          </p>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -595,7 +560,7 @@ export default function Dashboard() {
             )}
           </div>
           <div className="header-actions">
-            {isLoaded && isSignedIn && cloudSyncStatus && (
+            {cloudSyncStatus && (
               <span title={cloudSyncStatus} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                 <Cloud size={15} /> {cloudSyncStatus}
               </span>

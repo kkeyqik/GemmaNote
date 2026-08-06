@@ -1,4 +1,4 @@
-import { ApiError, errorResponse, hasMinimumPlan, requireAppUser, requireMinimumPlan } from "@/lib/app-auth";
+import { ApiError, errorResponse, hasMinimumPlan, requireAppUser } from "@/lib/app-auth";
 import { documentDto, parseDocumentInput, type DocumentInput } from "@/lib/documents";
 import { prisma } from "@/lib/prisma";
 import { getPersonalWorkspace, requireWorkspaceAccess } from "@/lib/workspaces";
@@ -19,7 +19,6 @@ async function documentWorkspace(userId: string, plan: string, requestedWorkspac
 export async function GET(request: Request) {
   try {
     const user = await requireAppUser();
-    requireMinimumPlan(user, "PRO");
     const workspaceId = new URL(request.url).searchParams.get("workspaceId");
     const selectedWorkspaceId = workspaceId
       ? await documentWorkspace(user.id, user.plan, workspaceId)
@@ -38,7 +37,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await requireAppUser();
-    requireMinimumPlan(user, "PRO");
     const body: unknown = await request.json();
     if (!body || typeof body !== "object") {
       return Response.json({ error: "Invalid request body" }, { status: 400 });

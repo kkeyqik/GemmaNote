@@ -34,7 +34,7 @@ export function getPlanFeatures(plan: string) {
   const normalizedPlan = getPlan(plan);
 
   return {
-    cloudSync: hasMinimumPlan(normalizedPlan, "PRO"),
+    cloudSync: true,
     advancedSeo: hasMinimumPlan(normalizedPlan, "PRO"),
     intentAndStyle: hasMinimumPlan(normalizedPlan, "PRO"),
     teamWorkspaces: hasMinimumPlan(normalizedPlan, "AGENCY"),
