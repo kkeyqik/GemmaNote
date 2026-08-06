@@ -41,7 +41,7 @@ export default async function MarketingLayout({ children }: { children: ReactNod
         </div>
       </header>
       
-      <main className="flex-1 overflow-hidden">{children}</main>
+      <main className="flex-1">{children}</main>
       
       <footer className="border-t border-[#eef2f6] bg-white py-12">
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 px-6 text-sm text-slate-500 sm:flex-row sm:justify-between">
