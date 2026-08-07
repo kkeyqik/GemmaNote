@@ -705,7 +705,7 @@ export default function Dashboard() {
               </div>
               
               <div className="stat-card">
-                <div className="stat-icon" style={{background: '#60a5fa'}}>W</div>
+                <div className="stat-icon" style={{background: 'var(--accent)'}}>W</div>
                 <div className="stat-info">
                   <span className="stat-label">Words</span>
                   <span className="stat-value">{activeNote.actualWords}</span>
@@ -713,7 +713,7 @@ export default function Dashboard() {
               </div>
 
               <div className="stat-card">
-                <div className="stat-icon" style={{background: '#34d399'}}>C</div>
+                <div className="stat-icon" style={{background: 'var(--success)'}}>C</div>
                 <div className="stat-info">
                   <span className="stat-label">Characters</span>
                   <span className="stat-value">{(activeNote.plainText || activeNote.content.replace(/<[^>]*>?/gm, '')).length}</span>
@@ -721,7 +721,7 @@ export default function Dashboard() {
               </div>
 
               <div className="stat-card">
-                <div className="stat-icon" style={{background: '#c084fc'}}>T</div>
+                <div className="stat-icon" style={{background: 'var(--warning)'}}>T</div>
                 <div className="stat-info">
                   <span className="stat-label">Reading Time</span>
                   <span className="stat-value">{Math.max(1, Math.ceil(activeNote.actualWords / 200))} min</span>

@@ -4,6 +4,20 @@
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-outfit: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+
+  /* Semantic color tokens — bridging CSS variables into Tailwind */
+  --color-surface: var(--bg-color);
+  --color-panel: var(--panel-bg);
+  --color-panel-alt: var(--sidebar-bg);
+  --color-border: var(--panel-border);
+  --color-text: var(--text-primary);
+  --color-text-muted: var(--text-secondary);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-light: var(--accent-light);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
 }
 
 :root {
@@ -696,10 +710,11 @@ body.dark-mode .note-card:hover, body.dark-mode .note-card.active {
 .modal-actions button.primary { background: var(--accent); color: white; }
 .modal-actions button.primary:hover { background: var(--accent-hover); }
 
-/* Shared interaction language */
+/* Shared interaction language — unified focus ring (matches Tailwind ring-4 ring-indigo-100) */
 :where(a, button, input, textarea, select, [tabindex]):focus-visible {
-  outline: 3px solid rgba(129, 140, 248, 0.45);
-  outline-offset: 2px;
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px rgba(224, 231, 255, 0.7);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -712,7 +727,7 @@ body.dark-mode .note-card:hover, body.dark-mode .note-card.active {
 }
 
 /* Keep the editor useful when the dashboard no longer has desktop width. */
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
   .dashboard {
     display: block;
     height: auto;
@@ -792,7 +807,7 @@ body.dark-mode .note-card:hover, body.dark-mode .note-card.active {
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 639px) {
   .main-content {
     padding: 12px;
   }
