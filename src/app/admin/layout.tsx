@@ -7,7 +7,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const access = await getAdminAccess();
   if (access === "unauthenticated") redirect("/sign-in");
   if (access === "forbidden") notFound();
-  
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       <AdminSidebar />

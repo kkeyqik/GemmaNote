@@ -7,6 +7,8 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Users, LifeBuoy, LogOut } from "lucide-react";
 
+gsap.registerPlugin(useGSAP);
+
 export function AdminSidebar() {
   const pathname = usePathname();
   const sidebarRef = useRef<HTMLDivElement>(null);

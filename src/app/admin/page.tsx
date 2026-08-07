@@ -5,6 +5,8 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Users, CreditCard, Activity, MoreVertical } from "lucide-react";
 
+gsap.registerPlugin(useGSAP);
+
 type User = { id: string; email: string; plan: string; usageCount: number; isSuspended: boolean; createdAt: string };
 
 export default function AdminPage() {
