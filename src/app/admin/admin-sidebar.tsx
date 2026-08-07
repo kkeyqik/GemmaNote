@@ -42,7 +42,8 @@ export function AdminSidebar() {
   return (
     <div
       ref={sidebarRef}
-      className="w-64 h-screen fixed left-0 top-0 flex flex-col bg-white/80 backdrop-blur-xl border-r border-slate-200 p-6 z-50 shadow-sm"
+      className="flex flex-col bg-white/80 backdrop-blur-xl border-r border-slate-200 p-6 z-50 shadow-sm"
+      style={{ width: '16rem', height: '100vh', position: 'fixed', left: 0, top: 0 }}
     >
       <div className="flex items-center gap-3 mb-10 px-2">
         <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xl">
