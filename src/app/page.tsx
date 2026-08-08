@@ -5,6 +5,7 @@ import gsap from "gsap";
 import Link from "next/link";
 import Editor from "@/components/Editor";
 import { PenSquare, LayoutGrid, Star, Trash2, Archive, Plus, Search, Sun, Moon, Settings, FileText, BarChart2, Download, RotateCcw, XCircle, Trash, List as ListIcon, Grid as GridIcon, CheckCircle2, Tag, Cloud } from "lucide-react";
+import Sidebar from "@/components/Sidebar";
 
 type ExtensionPost = {
   id: string;
@@ -499,46 +500,12 @@ export default function Dashboard() {
   return (
     <div className="dashboard">
       {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="logo">
-          <div className="logo-icon"><PenSquare size={20} /></div>
-          GemmaNote
-        </div>
-        
-        <button className="new-note-btn" onClick={handleNewNote}>
-          <Plus size={18} /> New Note
-        </button>
-
-        <nav className="nav-menu">
-          <ul>
-            <li className={`nav-item ${activeFolder === 'all' ? 'active' : ''}`} onClick={() => handleFolderClick('all')}>
-              <div className="nav-item-left"><LayoutGrid size={18} /> All Notes</div>
-              <span className="badge">{counts.all}</span>
-            </li>
-            <li className={`nav-item ${activeFolder === 'favorites' ? 'active' : ''}`} onClick={() => handleFolderClick('favorites')}>
-              <div className="nav-item-left"><Star size={18} /> Favorites</div>
-              <span className="badge">{counts.favorites}</span>
-            </li>
-            <li className={`nav-item ${activeFolder === 'trash' ? 'active' : ''}`} onClick={() => handleFolderClick('trash')}>
-              <div className="nav-item-left"><Trash2 size={18} /> Trash</div>
-              <span className="badge">{counts.trash}</span>
-            </li>
-            <li className={`nav-item ${activeFolder === 'archived' ? 'active' : ''}`} onClick={() => handleFolderClick('archived')}>
-              <div className="nav-item-left"><Archive size={18} /> Archived</div>
-              <span className="badge">{counts.archived}</span>
-            </li>
-          </ul>
-        </nav>
-
-        <div style={{ marginTop: 'auto', padding: '0 24px 24px 24px' }}>
-          <a href="/extension.zip" download className="btn-primary" style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', width: '100%', textDecoration: 'none', background: 'var(--accent)', color: '#fff', borderRadius: '8px', padding: '10px' }}>
-            <Download size={16} /> Get Extension
-          </a>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '8px' }}>
-            Unzip and load unpacked in Chrome
-          </p>
-        </div>
-      </aside>
+      <Sidebar 
+        activeFolder={activeFolder} 
+        counts={counts} 
+        onFolderClick={handleFolderClick} 
+        onNewNote={handleNewNote} 
+      />
 
       {/* Main Content */}
       <main className="main-content">
