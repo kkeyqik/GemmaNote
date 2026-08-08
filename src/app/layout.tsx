@@ -12,8 +12,7 @@ const outfit = Outfit({
   subsets: ["latin"],
 });
 
-import { ClerkProvider } from "@clerk/nextjs";
-
+// Auth removed
 export const metadata: Metadata = {
   title: "GemmaNote",
   description: "AI-powered text editor and blog generator",
@@ -25,13 +24,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html
-        lang="en"
-        className={`${inter.variable} ${outfit.variable} h-full antialiased`}
-      >
-        <body className="min-h-full flex flex-col">{children}</body>
-      </html>
-    </ClerkProvider>
+    <html
+      lang="en"
+      className={`${inter.variable} ${outfit.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col">{children}</body>
+    </html>
   );
 }

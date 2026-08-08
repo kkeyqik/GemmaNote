@@ -1,6 +1,6 @@
 import "server-only";
 
-import { auth, currentUser } from "@clerk/nextjs/server";
+// Auth removed
 import type { User } from "@/generated/prisma/client.js";
 import { prisma } from "@/lib/prisma";
 
@@ -44,26 +44,14 @@ export function getPlanFeatures(plan: string) {
 }
 
 export async function requireAppUser(): Promise<User> {
-  const { userId } = await auth();
-  if (!userId) {
-    throw new ApiError(401, "Authentication required");
-  }
-
-  const clerkUser = await currentUser();
-  const email = clerkUser?.primaryEmailAddress?.emailAddress ?? clerkUser?.emailAddresses[0]?.emailAddress;
-  if (!email) {
-    throw new ApiError(400, "Your Clerk account needs a verified email address");
-  }
+  const localId = "local_user_1";
+  const email = "local@gemmanote.com";
 
   const user = await prisma.user.upsert({
-    where: { clerkId: userId },
-    create: { clerkId: userId, email },
+    where: { clerkId: localId },
+    create: { clerkId: localId, email },
     update: { email },
   });
-
-  if (user.isSuspended) {
-    throw new ApiError(403, "This account is suspended");
-  }
 
   return user;
 }
