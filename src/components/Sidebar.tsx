@@ -24,12 +24,12 @@ export default function Sidebar({
 }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const isSettingsPage = pathname === '/settings';
+  const isSettingsPage = pathname === '/dashboard/settings';
 
   const handleFolderClick = (folder: string) => {
     if (isSettingsPage) {
       // If we are on the settings page, go back to the dashboard
-      router.push('/');
+      router.push('/dashboard');
     } else if (onFolderClick) {
       onFolderClick(folder);
     }
@@ -37,7 +37,7 @@ export default function Sidebar({
 
   const handleNewNote = () => {
     if (isSettingsPage) {
-      router.push('/');
+      router.push('/dashboard');
     } else if (onNewNote) {
       onNewNote();
     }
@@ -45,7 +45,7 @@ export default function Sidebar({
 
   return (
     <aside className="sidebar">
-      <div className="logo" style={{ cursor: 'pointer' }} onClick={() => isSettingsPage ? router.push('/') : null}>
+      <div className="logo" style={{ cursor: 'pointer' }} onClick={() => isSettingsPage ? router.push('/dashboard') : null}>
         <div className="logo-icon"><PenSquare size={20} /></div>
         GemmaNote
       </div>
