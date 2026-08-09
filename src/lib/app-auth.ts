@@ -71,19 +71,33 @@ export async function requireAppUser(): Promise<User> {
     where: { clerkId: userId },
   });
 
+  const adminEmails = (process.env.ADMIN_EMAILS || "keyqik@gmail.com")
+    .split(",")
+    .map((e) => e.trim().toLowerCase());
+
   if (!user) {
     const clerkUser = await currentUser();
     const email = clerkUser?.emailAddresses[0]?.emailAddress ?? `${userId}@user.clerk.dev`;
+    const initialRole = adminEmails.includes(email.toLowerCase()) ? "ADMIN" : "USER";
 
     user = await prisma.user.upsert({
       where: { clerkId: userId },
       create: {
         clerkId: userId,
         email,
+        role: initialRole,
       },
       update: {
         email,
       },
+    });
+  }
+
+  // Auto-elevate admin emails if role is still USER in DB
+  if (user && user.role !== "ADMIN" && adminEmails.includes(user.email.toLowerCase())) {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { role: "ADMIN" },
     });
   }
 
