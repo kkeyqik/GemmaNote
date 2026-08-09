@@ -183,9 +183,38 @@ export default function Dashboard() {
     window.postMessage({ type: "GEMMANOTE_READY", source: "gemmanote-webapp" }, window.location.origin);
   }, []);
 
-  // Sync notes to cloud on change (debounced)
+  // Sync notes to cloud on change (debounced with offline buffer & auto-reconnect flush)
   const prevNotesRef = useRef<any[]>([]);
   const dirtyNotesRef = useRef<Map<string, any>>(new Map());
+
+  // Function to flush offline buffered notes to backend
+  const flushOfflineBuffer = async () => {
+    try {
+      const raw = localStorage.getItem("gemmanote_offline_buffer");
+      if (!raw) return;
+      const bufferedNotes = JSON.parse(raw);
+      if (!Array.isArray(bufferedNotes) || bufferedNotes.length === 0) return;
+
+      setCloudSyncStatus('Syncing offline notes...');
+      await Promise.all(bufferedNotes.map((note) => fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cloudPayload(note)),
+      }).then((res) => { if (!res.ok) throw new Error('Flush failed'); })));
+
+      localStorage.removeItem("gemmanote_offline_buffer");
+      setCloudSyncStatus('Cloud synced');
+    } catch (e) {
+      console.warn("Offline buffer flush failed, will retry on next connection.", e);
+    }
+  };
+
+  // Reconnection listener
+  useEffect(() => {
+    window.addEventListener("online", flushOfflineBuffer);
+    flushOfflineBuffer(); // Attempt flush on mount if buffer exists
+    return () => window.removeEventListener("online", flushOfflineBuffer);
+  }, []);
 
   useEffect(() => {
     if (!notesLoaded) {
@@ -211,6 +240,20 @@ export default function Dashboard() {
       
       const notesToSync = Array.from(dirtyNotesRef.current.values());
       dirtyNotesRef.current.clear();
+
+      // If offline, save to localStorage offline buffer immediately
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        try {
+          const existing = JSON.parse(localStorage.getItem("gemmanote_offline_buffer") || "[]");
+          const mergedMap = new Map(existing.map((n: any) => [n.id, n]));
+          notesToSync.forEach(n => mergedMap.set(n.id, n));
+          localStorage.setItem("gemmanote_offline_buffer", JSON.stringify(Array.from(mergedMap.values())));
+          setCloudSyncStatus('Saved offline');
+        } catch (e) {
+          console.error("Failed to buffer offline notes", e);
+        }
+        return;
+      }
       
       try {
         setCloudSyncStatus('Saving...');
@@ -228,7 +271,18 @@ export default function Dashboard() {
             dirtyNotesRef.current.set(note.id, note);
           }
         });
-        setCloudSyncStatus('Sync failed — retrying...');
+
+        // Backup dirty notes to localStorage offline buffer on network error
+        try {
+          const existing = JSON.parse(localStorage.getItem("gemmanote_offline_buffer") || "[]");
+          const mergedMap = new Map(existing.map((n: any) => [n.id, n]));
+          notesToSync.forEach(n => mergedMap.set(n.id, n));
+          localStorage.setItem("gemmanote_offline_buffer", JSON.stringify(Array.from(mergedMap.values())));
+        } catch (e) {
+          console.error("Failed to save offline buffer", e);
+        }
+
+        setCloudSyncStatus('Offline — saved locally');
       }
     }, 1000);
 
