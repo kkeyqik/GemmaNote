@@ -54,7 +54,12 @@ export default function AuthPage() {
   };
 
   const handleOAuth = async (strategy: 'oauth_google' | 'oauth_github' | 'oauth_microsoft') => {
-    if (!isLoadedSignIn) return;
+    if (!signIn) {
+      setError("Auth service is initializing, please try again in a moment.");
+      return;
+    }
+    setIsSubmitting(true);
+    setError("");
     try {
       await signIn.authenticateWithRedirect({
         strategy,
@@ -62,6 +67,7 @@ export default function AuthPage() {
         redirectUrlComplete: "/dashboard",
       });
     } catch (err: any) {
+      setIsSubmitting(false);
       const msg = err.errors?.[0]?.longMessage || err.message || "OAuth failed";
       if (msg.includes("already signed in")) {
         // The user's client thinks they are signed in, but the server doesn't. 
@@ -76,7 +82,10 @@ export default function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoadedSignIn || !isLoadedSignUp) return;
+    if (!signIn || !signUp) {
+      setError("Auth service is initializing, please try again in a moment.");
+      return;
+    }
 
     setIsSubmitting(true);
     setError("");
@@ -374,7 +383,7 @@ export default function AuthPage() {
             {/* Submit */}
             <button 
               type="submit" 
-              disabled={isSubmitting || !isLoadedSignIn || !isLoadedSignUp}
+              disabled={isSubmitting}
               className="w-full py-3.5 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold text-[14px] rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isSubmitting ? "Please wait..." : (
