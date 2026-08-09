@@ -16,7 +16,7 @@ export const metadata = {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider proxyUrl="https://gemma-note.vercel.app/__clerk">
       <html lang="en">
         <body className="bg-[#F8FAFC] text-slate-900 font-sans min-h-screen flex selection:bg-indigo-500/30">
         
