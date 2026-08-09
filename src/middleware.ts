@@ -6,6 +6,8 @@ export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     await auth.protect()
   }
+}, {
+  proxyUrl: process.env.NODE_ENV === 'production' ? 'https://gemma-note.vercel.app/__clerk' : undefined
 })
 
 export const config = {
