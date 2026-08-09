@@ -59,8 +59,7 @@ export default function AuthPage() {
       await signIn.authenticateWithRedirect({
         strategy,
         redirectUrl: "/sso-callback",
-        forceRedirectUrl: "/dashboard",
-        fallbackRedirectUrl: "/dashboard",
+        redirectUrlComplete: "/dashboard",
       });
     } catch (err: any) {
       const msg = err.errors?.[0]?.longMessage || err.message || "OAuth failed";
