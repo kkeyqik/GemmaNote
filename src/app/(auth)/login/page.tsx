@@ -164,7 +164,7 @@ export default function AuthPage() {
           </p>
         </div>
 
-        <div className="space-y-6 relative z-10 mb-12">
+        <div className="space-y-6 relative z-10 mb-12 flex-1">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-xl bg-purple-100 text-[#8B5CF6] flex items-center justify-center shrink-0">
               <Sparkles size={18} />
@@ -183,6 +183,16 @@ export default function AuthPage() {
               <p className="text-[13px] text-slate-500 font-medium">Create 10x faster with smart templates and tools.</p>
             </div>
           </div>
+        </div>
+
+        {/* Floating Dashboard Preview Image */}
+        <div className="relative z-10 w-full mt-auto translate-y-8 rounded-2xl overflow-hidden shadow-2xl shadow-purple-900/20 border border-white/50 group cursor-pointer transition-transform duration-500 hover:-translate-y-2">
+          <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-20"></div>
+          <img 
+            src="/dashboard-preview.jpg" 
+            alt="GemmaNote Dashboard Preview" 
+            className="w-full h-auto object-cover transform scale-[1.02] group-hover:scale-105 transition-transform duration-700 ease-out"
+          />
         </div>
       </div>
 
