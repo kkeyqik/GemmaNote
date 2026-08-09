@@ -3,6 +3,7 @@ import "server-only";
 import type { User } from "@/generated/prisma/client.js";
 import { prisma } from "@/lib/prisma";
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { captureException } from "@/lib/sentry";
 
 export const PLAN_LIMITS = {
   FREE: 10,
@@ -158,6 +159,6 @@ export function errorResponse(error: unknown, fallback = "Unexpected server erro
     return Response.json({ error: error.message }, { status: error.status });
   }
 
-  console.error(error);
+  captureException(error);
   return Response.json({ error: fallback }, { status: 500 });
 }

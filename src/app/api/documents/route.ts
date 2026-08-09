@@ -1,6 +1,7 @@
 import { ApiError, errorResponse, hasMinimumPlan, requireAppUser } from "@/lib/app-auth";
 import { documentDto, parseDocumentInput, type DocumentInput } from "@/lib/documents";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { getPersonalWorkspace, requireWorkspaceAccess } from "@/lib/workspaces";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,14 @@ async function documentWorkspace(userId: string, plan: string, requestedWorkspac
 }
 
 export async function GET(request: Request) {
+  const rateLimit = checkRateLimit(request);
+  if (!rateLimit.success) {
+    return Response.json(
+      { error: "Too many requests. Please slow down." },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
+
   try {
     const user = await requireAppUser();
     const workspaceId = new URL(request.url).searchParams.get("workspaceId");
@@ -35,6 +44,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const rateLimit = checkRateLimit(request);
+  if (!rateLimit.success) {
+    return Response.json(
+      { error: "Too many requests. Please slow down." },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
+
   try {
     const user = await requireAppUser();
     const body: unknown = await request.json();

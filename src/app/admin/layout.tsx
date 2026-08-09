@@ -1,6 +1,4 @@
 import React from "react";
-import { ClerkProvider } from '@clerk/nextjs';
-import "../tailwind.css";
 import { 
   PenSquare, LayoutDashboard, Users, FileText, Folder, Grid, Tag, Trash2, 
   Activity, BarChart2, HardDrive, Settings, CreditCard, Receipt, FileSpreadsheet, 
@@ -31,9 +29,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const displayName = adminUser.email.split("@")[0] || "Admin";
 
   return (
-    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_test_cmVsaWV2ZWQtamF5YmlyZC0zMy5jbGVyay5hY2NvdW50cy5kZXYk"}>
-      <html lang="en">
-        <body className="bg-[#F8FAFC] text-slate-900 font-sans min-h-screen flex selection:bg-indigo-500/30">
+    <div className="bg-[#F8FAFC] text-slate-900 font-sans min-h-screen flex selection:bg-indigo-500/30 w-full">
         
         {/* Sidebar */}
         <aside className="w-[260px] bg-white border-r border-slate-100 flex flex-col h-screen sticky top-0 shrink-0 shadow-sm z-20">
@@ -192,9 +188,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
 
         </main>
-      </body>
-    </html>
-    </ClerkProvider>
+      </div>
   );
 }
 
