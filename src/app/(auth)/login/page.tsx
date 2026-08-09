@@ -140,64 +140,62 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-white selection:bg-purple-500/30">
+    <div className="h-screen flex flex-col lg:flex-row bg-white selection:bg-purple-500/30 overflow-hidden">
       
       {/* LEFT PANEL */}
-      <div className="hidden lg:flex w-full lg:w-[45%] xl:w-[40%] bg-gradient-to-br from-[#F5F3FF] to-[#FDFBFF] relative overflow-hidden flex-col p-8 md:p-12 lg:p-16 shrink-0 border-r border-purple-100/50">
+      <div className="hidden lg:flex w-full lg:w-[42%] xl:w-[38%] bg-gradient-to-br from-[#F5F3FF] to-[#FDFBFF] relative overflow-hidden flex-col p-6 lg:p-10 shrink-0 border-r border-purple-100/50">
         <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-200/40 rounded-full blur-[80px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-purple-300/30 rounded-full blur-[80px]" />
         <Sparkles size={24} className="absolute top-32 right-16 text-purple-300" />
         <Sparkles size={16} className="absolute bottom-1/3 left-12 text-purple-200" />
-        <Sparkles size={32} className="absolute top-1/2 right-12 text-purple-200" />
 
-        <div className="mb-16 relative z-10 w-fit">
+        <div className="mb-8 relative z-10 w-fit">
           <Logo />
         </div>
 
-        <div className="relative z-10 mb-12">
-          <h1 className="text-[3rem] md:text-[3.5rem] font-extrabold text-slate-800 leading-[1.1] mb-6 tracking-tight">
+        <div className="relative z-10 mb-6">
+          <h1 className="text-[2.2rem] lg:text-[2.6rem] font-extrabold text-slate-800 leading-[1.1] mb-4 tracking-tight">
             Smarter <span className="text-[#8B5CF6]">Writing</span>.<br/>
             Better <span className="text-[#8B5CF6]">Results</span>.
           </h1>
-          <p className="text-[15px] font-medium text-slate-600 leading-relaxed max-w-sm">
+          <p className="text-[13px] font-medium text-slate-600 leading-relaxed max-w-sm">
             Join thousands of writers, marketers, and teams who create amazing content with AI.
           </p>
         </div>
 
-        <div className="space-y-6 relative z-10 mb-12 flex-1">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-purple-100 text-[#8B5CF6] flex items-center justify-center shrink-0">
-              <Sparkles size={18} />
+        <div className="space-y-4 relative z-10 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#8B5CF6] flex items-center justify-center shrink-0">
+              <Sparkles size={16} />
             </div>
             <div>
-              <h4 className="text-[14px] font-bold text-slate-800 mb-0.5">AI-Powered Writing</h4>
-              <p className="text-[13px] text-slate-500 font-medium">Write, improve, and polish content in seconds.</p>
+              <h4 className="text-[13px] font-bold text-slate-800 mb-0.5">AI-Powered Writing</h4>
+              <p className="text-[12px] text-slate-500 font-medium">Write, improve, and polish content in seconds.</p>
             </div>
           </div>
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-400 flex items-center justify-center shrink-0">
-              <Zap size={18} />
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-400 flex items-center justify-center shrink-0">
+              <Zap size={16} />
             </div>
             <div>
-              <h4 className="text-[14px] font-bold text-slate-800 mb-0.5">Save Time</h4>
-              <p className="text-[13px] text-slate-500 font-medium">Create 10x faster with smart templates and tools.</p>
+              <h4 className="text-[13px] font-bold text-slate-800 mb-0.5">Save Time</h4>
+              <p className="text-[12px] text-slate-500 font-medium">Create 10x faster with smart templates and tools.</p>
             </div>
           </div>
         </div>
 
         {/* Floating Dashboard Preview Image */}
-        <div className="relative z-10 w-full mt-auto translate-y-8 rounded-2xl overflow-hidden shadow-2xl shadow-purple-900/20 border border-white/50 group cursor-pointer transition-transform duration-500 hover:-translate-y-2">
-          <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-20"></div>
+        <div className="relative z-10 w-full mt-auto rounded-2xl overflow-hidden shadow-2xl shadow-purple-900/20 border border-white/50 max-h-[30vh]">
           <img 
             src="/dashboard-preview.jpg" 
             alt="GemmaNote Dashboard Preview" 
-            className="w-full h-auto object-cover transform scale-[1.02] group-hover:scale-105 transition-transform duration-700 ease-out"
+            className="w-full h-full object-cover object-top"
           />
         </div>
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="flex-1 flex flex-col relative bg-white">
+      <div className="flex-1 flex flex-col relative bg-white overflow-y-auto">
         
         {/* Top Right Header */}
         <div className="absolute top-8 right-8 md:top-12 md:right-12 text-[13px] font-medium text-slate-500">
@@ -209,10 +207,10 @@ export default function AuthPage() {
           )}
         </div>
 
-        <div className="flex-1 flex flex-col justify-center items-center px-8 py-20 w-full max-w-[500px] mx-auto">
+        <div className="flex-1 flex flex-col justify-center items-center px-8 py-8 w-full max-w-[500px] mx-auto">
           
           {/* Header */}
-          <div className="text-center mb-10 w-full">
+          <div className="text-center mb-6 w-full">
             <h2 className="text-[28px] font-extrabold text-slate-800 mb-2 flex items-center justify-center gap-2">
               {mode === "login" && <>Welcome back <span className="animate-wave origin-bottom-right">👋</span></>}
               {mode === "signup" && <>Create an account ✨</>}
