@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from '@clerk/nextjs';
 import { Inter, Outfit } from "next/font/google";
-import "./globals.css";
+import "../tailwind.css";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -12,23 +13,24 @@ const outfit = Outfit({
   subsets: ["latin"],
 });
 
-// Auth removed
 export const metadata: Metadata = {
   title: "GemmaNote",
   description: "AI-powered text editor and blog generator",
 };
 
-export default function RootLayout({
+export default function MarketingLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${outfit.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
-    </html>
+    <ClerkProvider>
+      <html
+        lang="en"
+        className={`${inter.variable} ${outfit.variable} h-full antialiased`}
+      >
+        <body>{children}</body>
+      </html>
+    </ClerkProvider>
   );
 }

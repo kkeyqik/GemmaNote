@@ -558,7 +558,7 @@ export default function Dashboard() {
             <button className="icon-btn" onClick={() => setIsDarkMode(!isDarkMode)} title="Toggle Theme">
               {isDarkMode ? <Moon size={18} /> : <Sun size={18} />}
             </button>
-            <Link href="/settings" className="icon-btn" title={cloudSyncStatus || "Account settings"}>
+            <Link href="/dashboard/settings" className="icon-btn" title={cloudSyncStatus || "Account settings"}>
               <Settings size={18} />
             </Link>
           </div>
