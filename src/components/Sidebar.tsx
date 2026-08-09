@@ -1,6 +1,7 @@
 import React from 'react';
 import { PenSquare, Plus, LayoutGrid, Star, Trash2, Archive, Download } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useUser, UserButton } from '@clerk/nextjs';
 
 export type Counts = {
   all: number;
@@ -24,6 +25,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { user } = useUser();
   const isSettingsPage = pathname === '/dashboard/settings';
 
   const handleFolderClick = (folder: string) => {
@@ -76,6 +78,18 @@ export default function Sidebar({
       </nav>
 
       <div style={{ marginTop: 'auto', padding: '0 24px 24px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: 'rgba(0,0,0,0.03)', marginBottom: '16px', border: '1px solid rgba(0,0,0,0.05)' }}>
+          <UserButton showName={false} afterSignOutUrl="/login" />
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.primaryEmailAddress?.emailAddress?.split('@')[0] || user?.fullName || 'My Account'}
+            </span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.primaryEmailAddress?.emailAddress || 'Pro Plan'}
+            </span>
+          </div>
+        </div>
+
         <a href="/extension.zip" download className="btn-primary" style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', width: '100%', textDecoration: 'none', background: 'var(--accent)', color: '#fff', borderRadius: '8px', padding: '10px' }}>
           <Download size={16} /> Get Extension
         </a>

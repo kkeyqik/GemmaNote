@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import gsap from "gsap";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth, useUser } from "@clerk/nextjs";
 import Editor from "@/components/Editor";
 import { PenSquare, LayoutGrid, Star, Trash2, Archive, Plus, Search, Sun, Moon, Settings, FileText, BarChart2, Download, RotateCcw, XCircle, Trash, List as ListIcon, Grid as GridIcon, CheckCircle2, Tag, Cloud } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
@@ -36,6 +38,16 @@ function extensionContentToSafeHtml(content: string) {
 }
 
 export default function Dashboard() {
+  const { isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push("/login");
+    }
+  }, [isLoaded, isSignedIn, router]);
+
   const [notes, setNotes] = useState<any[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [activeFolder, setActiveFolder] = useState<'all' | 'favorites' | 'trash' | 'archived'>('all');
@@ -493,6 +505,17 @@ export default function Dashboard() {
     trash: notes.filter(n => n.isTrash).length,
     archived: notes.filter(n => n.isArchived && !n.isTrash).length,
   };
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-semibold text-slate-500">Loading workspace...</p>
+        </div>
+      </div>
+    );
+  }
 
   const topFavorites = notes.filter(n => n.isFavorite && !n.isTrash).slice(0, 5);
   const seoData = calculateSeoScore(activeNote);
