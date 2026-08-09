@@ -2,6 +2,7 @@ import React from 'react';
 import { PenSquare, Plus, LayoutGrid, Star, Trash2, Archive, Download } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUser, UserButton } from '@clerk/nextjs';
+import { Logo } from './Logo';
 
 export type Counts = {
   all: number;
@@ -47,9 +48,11 @@ export default function Sidebar({
 
   return (
     <aside className="sidebar">
-      <div className="logo" style={{ cursor: 'pointer' }} onClick={() => isSettingsPage ? router.push('/dashboard') : null}>
-        <div className="logo-icon"><PenSquare size={20} /></div>
-        GemmaNote
+      <div className="px-6 pt-5 pb-2">
+        <Logo 
+          href="/dashboard" 
+          onClick={isSettingsPage ? () => router.push('/dashboard') : undefined} 
+        />
       </div>
       
       <button className="new-note-btn" onClick={handleNewNote}>

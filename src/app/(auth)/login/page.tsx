@@ -221,7 +221,8 @@ export default function AuthPage() {
         <div className="flex-1 flex flex-col justify-center items-center px-8 py-8 w-full max-w-[500px] mx-auto">
           
           {/* Header */}
-          <div className="text-center mb-6 w-full">
+          <div className="text-center mb-6 w-full flex flex-col items-center">
+            <Logo className="mb-6" />
             <h2 className="text-[28px] font-extrabold text-slate-800 mb-2 flex items-center justify-center gap-2">
               {mode === "login" && <>Welcome back <span className="animate-wave origin-bottom-right">👋</span></>}
               {mode === "signup" && <>Create an account ✨</>}
