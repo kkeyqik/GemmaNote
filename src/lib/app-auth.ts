@@ -1,8 +1,8 @@
 import "server-only";
 
-// Auth removed
 import type { User } from "@/generated/prisma/client.js";
 import { prisma } from "@/lib/prisma";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
 export const PLAN_LIMITS = {
   FREE: 10,
@@ -44,14 +44,35 @@ export function getPlanFeatures(plan: string) {
 }
 
 export async function requireAppUser(): Promise<User> {
-  const localId = "local_user_1";
-  const email = "local@gemmanote.com";
+  const { userId } = await auth();
 
-  const user = await prisma.user.upsert({
-    where: { clerkId: localId },
-    create: { clerkId: localId, email },
-    update: { email },
+  if (!userId) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  let user = await prisma.user.findUnique({
+    where: { clerkId: userId },
   });
+
+  if (!user) {
+    const clerkUser = await currentUser();
+    const email = clerkUser?.emailAddresses[0]?.emailAddress ?? `${userId}@user.clerk.dev`;
+
+    user = await prisma.user.upsert({
+      where: { clerkId: userId },
+      create: {
+        clerkId: userId,
+        email,
+      },
+      update: {
+        email,
+      },
+    });
+  }
+
+  if (user.isSuspended) {
+    throw new ApiError(403, "Your account has been suspended. Please contact support.");
+  }
 
   return user;
 }
