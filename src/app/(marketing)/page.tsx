@@ -1,8 +1,5 @@
-"use client";
-
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import Link from "next/link";
-import gsap from "gsap";
 import { 
   PenSquare, Sparkles, FileText, Folder, Shield, MonitorSmartphone, 
   ArrowRight, ArrowUp, Check, Search, Plus, LayoutGrid, Star, Archive, Trash2,
@@ -18,10 +15,10 @@ import {
   HelpCircle, Minus, Mail, MessageSquare, ChevronRight, Play, Cpu, Sparkles as SparkleIcon, LogIn
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { useAuth } from "@clerk/nextjs";
+import { HeaderAuthButtons } from "@/components/HeaderAuthButtons";
+import { BackToTopButton } from "@/components/BackToTopButton";
 
 export default function MarketingPage() {
-  const { isSignedIn, isLoaded } = useAuth();
   return (
     <div className="w-full bg-[#F4F7FB] text-slate-900 font-sans selection:bg-indigo-500/30 relative">
       
@@ -53,20 +50,7 @@ export default function MarketingPage() {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
-            {isLoaded && isSignedIn ? (
-              <Link href="/dashboard" className="h-10 px-6 flex items-center justify-center text-sm font-bold rounded-xl bg-gradient-to-r from-blue-400 to-indigo-500 text-white hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/25 gap-2">
-                Go to Dashboard <ArrowRight size={16} />
-              </Link>
-            ) : (
-              <>
-                <Link href="/login" className="hidden sm:flex items-center justify-center h-10 px-6 text-sm font-bold rounded-xl bg-white text-slate-700 hover:text-slate-900 shadow-sm border border-slate-100 transition-colors">
-                  Sign In
-                </Link>
-                <Link href="/login" className="h-10 px-6 flex items-center justify-center text-sm font-bold rounded-xl bg-gradient-to-r from-blue-400 to-indigo-500 text-white hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/25">
-                  Get Started Free
-                </Link>
-              </>
-            )}
+            <HeaderAuthButtons />
           </div>
         </nav>
 
@@ -2684,72 +2668,6 @@ export default function MarketingPage() {
       <BackToTopButton />
 
     </div>
-  );
-}
-
-function BackToTopButton() {
-  const [isVisible, setIsVisible] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 300) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    if (!buttonRef.current) return;
-    if (isVisible) {
-      gsap.to(buttonRef.current, {
-        opacity: 1,
-        scale: 1,
-        y: 0,
-        pointerEvents: "auto",
-        duration: 0.4,
-        ease: "back.out(1.7)",
-      });
-    } else {
-      gsap.to(buttonRef.current, {
-        opacity: 0,
-        scale: 0.7,
-        y: 20,
-        pointerEvents: "none",
-        duration: 0.3,
-        ease: "power2.in",
-      });
-    }
-  }, [isVisible]);
-
-  const scrollToTop = () => {
-    if (buttonRef.current) {
-      gsap.fromTo(
-        buttonRef.current,
-        { scale: 0.85 },
-        { scale: 1, duration: 0.4, ease: "elastic.out(1, 0.4)" }
-      );
-    }
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
-
-  return (
-    <button
-      ref={buttonRef}
-      onClick={scrollToTop}
-      aria-label="Back to Top"
-      className="fixed bottom-8 right-8 z-50 p-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-2xl shadow-indigo-500/40 border border-white/30 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 hover:shadow-indigo-500/60 hover:-translate-y-1 group"
-    >
-      <ArrowUp size={20} className="transform transition-transform duration-300 group-hover:-translate-y-0.5" />
-    </button>
   );
 }
 
