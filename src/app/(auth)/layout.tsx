@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider proxyUrl="https://gemma-note.vercel.app/__clerk">
+    <ClerkProvider>
       <html lang="en">
         <body className="bg-white text-slate-900 font-sans selection:bg-indigo-500/30">
           {children}

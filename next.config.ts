@@ -1,14 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async rewrites() {
-    return [
-      {
-        source: "/__clerk/:path*",
-        destination: "https://clerk.gemma-note.vercel.app/v1/:path*",
-      },
-    ];
-  },
   async headers() {
     return [
       {
