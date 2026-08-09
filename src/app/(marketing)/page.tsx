@@ -52,9 +52,7 @@ export default function MarketingPage() {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
-            {!isLoaded ? (
-               <div className="h-10 w-32 bg-slate-100 animate-pulse rounded-xl" />
-            ) : isSignedIn ? (
+            {isLoaded && isSignedIn ? (
               <Link href="/dashboard" className="h-10 px-6 flex items-center justify-center text-sm font-bold rounded-xl bg-gradient-to-r from-blue-400 to-indigo-500 text-white hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/25 gap-2">
                 Go to Dashboard <ArrowRight size={16} />
               </Link>
