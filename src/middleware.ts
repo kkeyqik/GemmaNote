@@ -17,6 +17,7 @@ export const config = {
     // Always run for API routes
     '/(api|trpc)(.*)',
     // Clerk proxy for production (vercel.app domain requires proxy, no DNS)
+    '/__clerk/:path*',
     '/__clerk/(.*)',
     '/__clerk',
   ],
