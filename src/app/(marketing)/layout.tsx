@@ -24,7 +24,7 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider proxyUrl="/__clerk">
       <html
         lang="en"
         className={`${inter.variable} ${outfit.variable} h-full antialiased`}
