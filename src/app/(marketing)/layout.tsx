@@ -24,7 +24,7 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_live_Y2xlcmsuZ2VtbWEtbm90ZS52ZXJjZWwuYXBwJA"}>
       <html
         lang="en"
         className={`${inter.variable} ${outfit.variable} h-full antialiased`}

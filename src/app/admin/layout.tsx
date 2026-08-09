@@ -31,7 +31,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const displayName = adminUser.email.split("@")[0] || "Admin";
 
   return (
-    <ClerkProvider>
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_live_Y2xlcmsuZ2VtbWEtbm90ZS52ZXJjZWwuYXBwJA"}>
       <html lang="en">
         <body className="bg-[#F8FAFC] text-slate-900 font-sans min-h-screen flex selection:bg-indigo-500/30">
         

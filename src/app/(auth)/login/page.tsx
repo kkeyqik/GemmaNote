@@ -54,14 +54,15 @@ export default function AuthPage() {
   };
 
   const handleOAuth = async (strategy: 'oauth_google' | 'oauth_github' | 'oauth_microsoft') => {
-    if (!signIn) {
-      setError("Auth service is initializing, please try again in a moment.");
+    const activeSignIn = signIn || clerk?.client?.signIn;
+    if (!activeSignIn) {
+      setError("Connecting to security service... Please try again in 2 seconds.");
       return;
     }
     setIsSubmitting(true);
     setError("");
     try {
-      await signIn.authenticateWithRedirect({
+      await activeSignIn.authenticateWithRedirect({
         strategy,
         redirectUrl: "/sso-callback",
         redirectUrlComplete: "/dashboard",
@@ -70,8 +71,6 @@ export default function AuthPage() {
       setIsSubmitting(false);
       const msg = err.errors?.[0]?.longMessage || err.message || "OAuth failed";
       if (msg.includes("already signed in")) {
-        // The user's client thinks they are signed in, but the server doesn't. 
-        // Force sign out to clear the stuck client state.
         await clerk.signOut();
         window.location.reload();
       } else {
@@ -82,8 +81,11 @@ export default function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signIn || !signUp) {
-      setError("Auth service is initializing, please try again in a moment.");
+    const activeSignIn = signIn || clerk?.client?.signIn;
+    const activeSignUp = signUp || clerk?.client?.signUp;
+
+    if (!activeSignIn || !activeSignUp) {
+      setError("Connecting to security service... Please try again in 2 seconds.");
       return;
     }
 
@@ -92,50 +94,50 @@ export default function AuthPage() {
 
     try {
       if (mode === "login") {
-        const result = await signIn.create({
+        const result = await activeSignIn.create({
           identifier: email,
           password,
         });
         if (result.status === "complete") {
-          await setActiveSignIn({ session: result.createdSessionId });
+          if (setActiveSignIn) await setActiveSignIn({ session: result.createdSessionId });
           router.push("/dashboard");
         } else {
           console.log(result);
         }
       } 
       else if (mode === "signup") {
-        const result = await signUp.create({
+        const result = await activeSignUp.create({
           emailAddress: email,
           password,
         });
         // Start verification
-        await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+        await activeSignUp.prepareEmailAddressVerification({ strategy: "email_code" });
         setMode("verify");
       }
       else if (mode === "verify") {
-        const result = await signUp.attemptEmailAddressVerification({ code });
+        const result = await activeSignUp.attemptEmailAddressVerification({ code });
         if (result.status === "complete") {
-          await setActiveSignUp({ session: result.createdSessionId });
+          if (setActiveSignUp) await setActiveSignUp({ session: result.createdSessionId });
           router.push("/dashboard");
         } else {
           console.log(result);
         }
       }
       else if (mode === "forgot") {
-        const result = await signIn.create({
+        const result = await activeSignIn.create({
           strategy: "reset_password_email_code",
           identifier: email,
         });
         setMode("reset");
       }
       else if (mode === "reset") {
-        const result = await signIn.attemptFirstFactor({
+        const result = await activeSignIn.attemptFirstFactor({
           strategy: "reset_password_email_code",
           code,
           password,
         });
         if (result.status === "complete") {
-          await setActiveSignIn({ session: result.createdSessionId });
+          if (setActiveSignIn) await setActiveSignIn({ session: result.createdSessionId });
           router.push("/dashboard");
         } else {
           console.log(result);
