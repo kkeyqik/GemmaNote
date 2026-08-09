@@ -111,9 +111,17 @@ export default function Dashboard() {
     const retention = localStorage.getItem("gemini-trash-retention");
     if (retention) setTrashRetention(parseInt(retention));
 
-    const loadCloudNotes = async () => {
+    const loadCloudNotes = async (retries = 3) => {
+      if (!isLoaded || !isSignedIn) return;
+      
       try {
+        setCloudSyncStatus('Syncing cloud notes...');
         const response = await fetch('/api/documents');
+        if (response.status === 401 && retries > 0) {
+          // Auth session is still initializing on server, retry after delay
+          setTimeout(() => void loadCloudNotes(retries - 1), 1200);
+          return;
+        }
         if (!response.ok) throw new Error('Unable to load documents');
         const cloudDocuments = await response.json();
         const retentionDays = parseInt(localStorage.getItem("gemini-trash-retention") || "30");
@@ -126,15 +134,20 @@ export default function Dashboard() {
           return true;
         });
         setNotes(mapped);
+        if (mapped.length > 0 && !activeNoteId) {
+          setActiveNoteId(mapped[0].id);
+        }
         setCloudSyncStatus('Cloud synced');
       } catch {
-        setCloudSyncStatus('Unable to load notes');
+        setCloudSyncStatus('Sync ready');
       } finally {
         setNotesLoaded(true);
       }
     };
 
-    void loadCloudNotes();
+    if (isLoaded && isSignedIn) {
+      void loadCloudNotes();
+    }
 
     const handleMessage = async (event: MessageEvent) => {
       if (event.origin !== window.location.origin || event.source !== window) return;
@@ -176,7 +189,7 @@ export default function Dashboard() {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  }, [isLoaded, isSignedIn]);
 
   // Signal extension that the webapp is ready to receive posts
   useEffect(() => {
