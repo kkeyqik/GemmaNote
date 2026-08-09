@@ -4,17 +4,32 @@ import "../tailwind.css";
 import { 
   PenSquare, LayoutDashboard, Users, FileText, Folder, Grid, Tag, Trash2, 
   Activity, BarChart2, HardDrive, Settings, CreditCard, Receipt, FileSpreadsheet, 
-  Blocks, Terminal, MessageSquare, Search, Bell, Moon, ChevronDown, Menu
+  Blocks, Terminal, MessageSquare, Search, Bell, Moon, ChevronDown, Menu, LogOut
 } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Logo } from "@/components/Logo";
+import { requireAdminUser } from "@/lib/app-auth";
 
 export const metadata = {
   title: "Admin Panel - GemmaNote",
   description: "GemmaNote Admin Dashboard",
 };
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  let adminUser;
+  try {
+    adminUser = await requireAdminUser();
+  } catch (error: any) {
+    if (error?.status === 401) {
+      redirect("/login");
+    }
+    // Non-admin logged in user -> redirect to dashboard
+    redirect("/dashboard");
+  }
+
+  const displayName = adminUser.email.split("@")[0] || "Admin";
+
   return (
     <ClerkProvider>
       <html lang="en">
@@ -103,19 +118,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           {/* User Profile Footer */}
           <div className="p-4 border-t border-slate-100 shrink-0">
-            <Link href="/login" className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors group">
-              <div className="flex items-center gap-3">
-                <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=150" alt="Admin" className="w-9 h-9 rounded-full object-cover" />
-                <div className="flex flex-col">
-                  <span className="text-[13px] font-bold text-slate-800">Naman Agarwal</span>
-                  <span className="text-[11px] font-medium text-slate-500">Super Admin</span>
+            <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-9 h-9 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[13px] font-bold text-slate-800 truncate capitalize">{displayName}</span>
+                  <span className="text-[11px] font-semibold text-indigo-600 uppercase tracking-wider">{adminUser.role || "ADMIN"}</span>
                 </div>
               </div>
-              <div className="text-slate-400 group-hover:text-rose-500 transition-colors">
-                <ChevronDown size={14} className="group-hover:hidden" />
-                <svg className="hidden group-hover:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-              </div>
-            </Link>
+            </div>
           </div>
         </aside>
 
@@ -165,7 +178,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
               <div className="w-px h-8 bg-slate-200"></div>
 
-              <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=150" alt="Admin" className="w-9 h-9 rounded-full object-cover shadow-sm border border-slate-200" />
+              <div className="w-9 h-9 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-sm border border-slate-200">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
 
             </div>
 

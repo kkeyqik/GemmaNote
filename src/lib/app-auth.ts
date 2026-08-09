@@ -43,6 +43,22 @@ export function getPlanFeatures(plan: string) {
   };
 }
 
+export function isAdmin(user: User): boolean {
+  const adminEmails = (process.env.ADMIN_EMAILS || "keyqik@gmail.com")
+    .split(",")
+    .map((e) => e.trim().toLowerCase());
+
+  return user.role === "ADMIN" || adminEmails.includes(user.email.toLowerCase());
+}
+
+export async function requireAdminUser(): Promise<User> {
+  const user = await requireAppUser();
+  if (!isAdmin(user)) {
+    throw new ApiError(403, "Admin access required. You do not have permission to access the admin panel.");
+  }
+  return user;
+}
+
 export async function requireAppUser(): Promise<User> {
   const { userId } = await auth();
 
