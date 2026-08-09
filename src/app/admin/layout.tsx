@@ -1,4 +1,5 @@
 import React from "react";
+import "../tailwind.css";
 import { 
   PenSquare, LayoutDashboard, Users, FileText, Folder, Grid, Tag, Trash2, 
   Activity, BarChart2, HardDrive, Settings, CreditCard, Receipt, FileSpreadsheet, 

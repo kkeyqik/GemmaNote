@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "../tailwind.css";
 
 export const metadata: Metadata = {
   title: "GemmaNote",
@@ -10,5 +11,5 @@ export default function MarketingLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <>{children}</>;
+  return <div className="min-h-full flex flex-col">{children}</div>;
 }

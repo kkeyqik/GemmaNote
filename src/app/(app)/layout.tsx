@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "../globals.css";
 
 export const metadata: Metadata = {
   title: "GemmaNote",
@@ -10,6 +11,6 @@ export default function AppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <>{children}</>;
+  return <div className="min-h-full flex flex-col">{children}</div>;
 }
 
