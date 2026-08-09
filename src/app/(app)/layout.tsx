@@ -24,7 +24,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider proxyUrl={process.env.NEXT_PUBLIC_CLERK_PROXY_URL || "https://gemma-note.vercel.app/__clerk"}>
+    <ClerkProvider>
       <html
         lang="en"
         className={`${inter.variable} ${outfit.variable} h-full antialiased`}
