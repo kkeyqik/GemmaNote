@@ -9,7 +9,7 @@ import {
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Logo } from "@/components/Logo";
-import { requireAdminUser } from "@/lib/app-auth";
+import { requireAdminUser, ApiError } from "@/lib/app-auth";
 
 export const metadata = {
   title: "Admin Panel - GemmaNote",
@@ -20,8 +20,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   let adminUser;
   try {
     adminUser = await requireAdminUser();
-  } catch (error: any) {
-    if (error?.status === 401) {
+  } catch (error: unknown) {
+    // Next.js redirect() throws a special error that MUST be re-thrown
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      throw error;
+    }
+    // Also re-throw if it has the Next.js digest property (redirect/notFound)
+    if (error && typeof error === "object" && "digest" in error) {
+      throw error;
+    }
+    
+    if (error instanceof ApiError && error.status === 401) {
       redirect("/login");
     }
     // Non-admin logged in user -> redirect to dashboard
