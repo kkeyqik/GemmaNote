@@ -1,42 +1,30 @@
 import "server-only";
 
-import type { PoolConfig } from "@neondatabase/serverless";
-import { PrismaNeon } from "@prisma/adapter-neon";
+import { PrismaNeonHttp } from "@prisma/adapter-neon";
 import { PrismaClient } from "@/generated/prisma/client.js";
 
-const rawConnectionString = process.env.DATABASE_URL;
+const connectionString = process.env.DATABASE_URL;
 
-if (!rawConnectionString) {
+if (!connectionString) {
   throw new Error("DATABASE_URL is not configured");
 }
 
 /**
- * Ensures Neon serverless connection pooling URL format.
- * If pointing to a .neon.tech host without -pooler, converts it to the pooled connection endpoint.
+ * Uses Neon's HTTP-based serverless driver (PrismaNeonHttp).
+ *
+ * Why HTTP instead of WebSocket (PrismaNeon)?
+ * - PrismaNeon uses WebSocket connections via @neondatabase/serverless Pool.
+ * - WebSocket connections fail on Vercel serverless with an "ErrorEvent" because
+ *   the short-lived Lambda environment can't maintain persistent WS connections.
+ * - PrismaNeonHttp sends SQL over HTTPS — zero connection overhead, works perfectly
+ *   on Vercel/Cloudflare/edge serverless.
+ *
+ * @see https://www.prisma.io/docs/orm/overview/databases/neon#how-to-connect-using-the-neon-serverless-driver
  */
-const getPooledConnectionString = (urlStr: string): string => {
-  try {
-    const url = new URL(urlStr);
-    if (url.hostname.endsWith(".neon.tech") && !url.hostname.includes("-pooler")) {
-      url.hostname = url.hostname.replace(".neon.tech", "-pooler.neon.tech");
-      return url.toString();
-    }
-  } catch {
-    // Fallback to raw string if parsing fails
-  }
-  return urlStr;
-};
-
-const connectionString = getPooledConnectionString(rawConnectionString);
-
-const poolConfig: PoolConfig = {
-  connectionString,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-};
-
-const adapter = new PrismaNeon(poolConfig);
+const adapter = new PrismaNeonHttp(connectionString, {
+  arrayMode: false,
+  fullResults: true,
+});
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
