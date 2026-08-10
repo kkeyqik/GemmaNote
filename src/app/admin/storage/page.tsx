@@ -1,12 +1,69 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
-  HardDrive, Server, Database, Cloud, AlertCircle, 
-  Image as ImageIcon, FileText, FolderArchive, ArrowUpCircle
+  HardDrive, FileText, Trash2, BarChart2, RefreshCw, 
+  AlertCircle, Users, Database, ArrowUpRight
 } from "lucide-react";
 
+interface TopUser {
+  id: string;
+  email: string;
+  count: number;
+}
+
+interface StorageMetrics {
+  totalDocuments: number;
+  totalStorageBytes: number;
+  totalStorageMB: number;
+  trashedCount: number;
+  trashedStorageBytes: number;
+  trashedStorageMB: number;
+  avgDocSizeBytes: number;
+  avgDocSizeKB: number;
+  topUsers: TopUser[];
+}
+
 export default function AdminStoragePage() {
+  const [metrics, setMetrics] = useState<StorageMetrics | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStorageStats = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/storage");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || `Server returned status ${res.status}`);
+      }
+      const data: StorageMetrics = await res.json();
+      setMetrics(data);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to load storage metrics";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStorageStats();
+  }, [fetchStorageStats]);
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return "0 B";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
+  const maxUserDocs = metrics?.topUsers && metrics.topUsers.length > 0 
+    ? Math.max(...metrics.topUsers.map(u => u.count), 1) 
+    : 1;
+
   return (
     <div className="w-full max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       
@@ -17,141 +74,284 @@ export default function AdminStoragePage() {
             <HardDrive className="text-indigo-500" size={24} />
             Storage & Infrastructure
           </h1>
-          <p className="text-[13px] font-medium text-slate-500 mt-1">Monitor server storage limits, databases, and media assets.</p>
+          <p className="text-[13px] font-medium text-slate-500 mt-1">
+            Real-time breakdown of document payload sizes, trash retention, and top user storage allocation.
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="h-10 px-4 rounded-xl bg-indigo-600 text-white font-bold text-[13px] hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-md shadow-indigo-500/20">
-            <ArrowUpCircle size={16} /> Upgrade Capacity
+          <button
+            onClick={fetchStorageStats}
+            disabled={loading}
+            className="h-10 px-4 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-[13px] hover:bg-slate-50 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin text-indigo-500" : ""} />
+            Refresh
           </button>
         </div>
       </div>
 
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center justify-between gap-3 text-[13px] font-medium">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={18} className="shrink-0 text-rose-600" />
+            <span>{error}</span>
+          </div>
+          <button 
+            onClick={fetchStorageStats}
+            className="px-3 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold rounded-lg transition-colors text-[12px]"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Big Stat Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        
+        {/* Total Documents */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[13px] font-bold text-slate-500">Total Documents</span>
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <FileText size={18} />
+            </div>
+          </div>
+          {loading ? (
+            <div className="h-8 bg-slate-200 rounded w-24 animate-pulse my-1"></div>
+          ) : (
+            <div>
+              <span className="text-2xl font-black text-slate-800">
+                {metrics?.totalDocuments.toLocaleString() ?? 0}
+              </span>
+              <p className="text-[11px] font-medium text-slate-400 mt-1">
+                Active & trashed notes combined
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Total Storage */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[13px] font-bold text-slate-500">Total Storage</span>
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <HardDrive size={18} />
+            </div>
+          </div>
+          {loading ? (
+            <div className="h-8 bg-slate-200 rounded w-28 animate-pulse my-1"></div>
+          ) : (
+            <div>
+              <span className="text-2xl font-black text-slate-800">
+                {formatBytes(metrics?.totalStorageBytes ?? 0)}
+              </span>
+              <p className="text-[11px] font-medium text-slate-400 mt-1">
+                Estimated payload size
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Trashed Docs */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[13px] font-bold text-slate-500">Trashed Docs</span>
+            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <Trash2 size={18} />
+            </div>
+          </div>
+          {loading ? (
+            <div className="h-8 bg-slate-200 rounded w-20 animate-pulse my-1"></div>
+          ) : (
+            <div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-black text-slate-800">
+                  {metrics?.trashedCount.toLocaleString() ?? 0}
+                </span>
+                <span className="text-[12px] font-bold text-slate-400">
+                  ({formatBytes(metrics?.trashedStorageBytes ?? 0)})
+                </span>
+              </div>
+              <p className="text-[11px] font-medium text-slate-400 mt-1">
+                Pending permanent deletion
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Avg Doc Size */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[13px] font-bold text-slate-500">Avg Doc Size</span>
+            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+              <BarChart2 size={18} />
+            </div>
+          </div>
+          {loading ? (
+            <div className="h-8 bg-slate-200 rounded w-24 animate-pulse my-1"></div>
+          ) : (
+            <div>
+              <span className="text-2xl font-black text-slate-800">
+                {formatBytes(metrics?.avgDocSizeBytes ?? 0)}
+              </span>
+              <p className="text-[11px] font-medium text-slate-400 mt-1">
+                Average payload per document
+              </p>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left Column: Usage Overview */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
+        {/* Left Column: Top 10 Users Pure CSS Bar Chart */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 flex flex-col justify-between">
           
-          {/* Main Storage Bar */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-[15px] font-bold text-slate-800 flex items-center gap-2">
-                <Cloud className="text-indigo-500" size={18} /> Global Storage Usage
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+            <div>
+              <h2 className="text-[16px] font-extrabold text-slate-800 flex items-center gap-2">
+                <Users size={18} className="text-indigo-500" />
+                Top 10 Users by Document Count
               </h2>
-              <span className="text-[13px] font-bold text-slate-500">74% Capacity</span>
-            </div>
-            
-            <div className="flex items-end justify-between mb-2">
-              <span className="text-3xl font-black text-slate-800">3.7 <span className="text-xl font-bold text-slate-400">TB</span></span>
-              <span className="text-[13px] font-bold text-slate-500">of 5.0 TB Total</span>
-            </div>
-            
-            <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden flex mb-6">
-              <div className="h-full bg-indigo-500" style={{ width: '45%' }} title="Images (1.66 TB)"></div>
-              <div className="h-full bg-blue-400" style={{ width: '20%' }} title="Documents (740 GB)"></div>
-              <div className="h-full bg-emerald-400" style={{ width: '9%' }} title="Text Notes (330 GB)"></div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1 p-3 rounded-xl bg-indigo-50/50 border border-indigo-100">
-                <span className="flex items-center gap-1.5 text-[12px] font-bold text-indigo-700">
-                  <ImageIcon size={14} /> Images
-                </span>
-                <span className="text-[16px] font-black text-slate-800">1.66 TB</span>
-              </div>
-              <div className="flex flex-col gap-1 p-3 rounded-xl bg-blue-50/50 border border-blue-100">
-                <span className="flex items-center gap-1.5 text-[12px] font-bold text-blue-700">
-                  <FileText size={14} /> Documents
-                </span>
-                <span className="text-[16px] font-black text-slate-800">740 GB</span>
-              </div>
-              <div className="flex flex-col gap-1 p-3 rounded-xl bg-emerald-50/50 border border-emerald-100">
-                <span className="flex items-center gap-1.5 text-[12px] font-bold text-emerald-700">
-                  <FolderArchive size={14} /> Text Notes
-                </span>
-                <span className="text-[16px] font-black text-slate-800">330 GB</span>
-              </div>
+              <p className="text-[12px] font-medium text-slate-500 mt-0.5">
+                Users generating the highest volume of content on GemmaNote.
+              </p>
             </div>
           </div>
 
-          {/* Infrastructure Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                <Database size={24} />
-              </div>
-              <div>
-                <h3 className="text-[14px] font-bold text-slate-800">Database Size (RDS)</h3>
-                <p className="text-[12px] font-medium text-slate-500 mt-1 mb-3">Primary Postgres cluster across 2 zones.</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl font-black text-slate-800">142 GB</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">Healthy</span>
+          {loading ? (
+            /* Loading Bar Chart Skeleton */
+            <div className="space-y-4 animate-pulse my-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 bg-slate-200 rounded w-40"></div>
+                    <div className="h-4 bg-slate-200 rounded w-12"></div>
+                  </div>
+                  <div className="w-full h-3 bg-slate-100 rounded-full"></div>
                 </div>
-              </div>
+              ))}
             </div>
+          ) : !metrics?.topUsers || metrics.topUsers.length === 0 ? (
+            /* Empty State */
+            <div className="py-12 text-center flex flex-col items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
+                <Users size={24} />
+              </div>
+              <h3 className="text-[14px] font-bold text-slate-700">No user data available</h3>
+              <p className="text-[12px] font-medium text-slate-400 mt-1">
+                There are no user documents created yet.
+              </p>
+            </div>
+          ) : (
+            /* Pure CSS Bar Chart */
+            <div className="space-y-5">
+              {metrics.topUsers.map((user, idx) => {
+                const percentage = Math.round((user.count / maxUserDocs) * 100);
 
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                <Server size={24} />
-              </div>
-              <div>
-                <h3 className="text-[14px] font-bold text-slate-800">Bandwidth Usage</h3>
-                <p className="text-[12px] font-medium text-slate-500 mt-1 mb-3">Total egress traffic this billing cycle.</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl font-black text-slate-800">8.4 TB</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200">Warning (85%)</span>
-                </div>
-              </div>
+                return (
+                  <div key={user.id} className="group flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between text-[13px]">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                          idx === 0 ? "bg-indigo-600 text-white" :
+                          idx === 1 ? "bg-indigo-100 text-indigo-700" :
+                          idx === 2 ? "bg-purple-100 text-purple-700" :
+                          "bg-slate-100 text-slate-600"
+                        }`}>
+                          #{idx + 1}
+                        </span>
+                        <span className="font-bold text-slate-800 truncate" title={user.email}>
+                          {user.email}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-extrabold text-slate-800 text-[13px]">
+                          {user.count.toLocaleString()}
+                        </span>
+                        <span className="text-[11px] font-semibold text-slate-400">
+                          {user.count === 1 ? "doc" : "docs"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bar visualization */}
+                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex p-0.5">
+                      <div 
+                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-700 ease-out group-hover:from-indigo-600 group-hover:to-purple-600"
+                        style={{ width: `${Math.max(percentage, 3)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+          )}
+
+          <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-[12px] text-slate-400 font-medium">
+            <span>Bar lengths relative to top contributor</span>
+            <span className="font-bold text-slate-600">Top 10 ranking</span>
           </div>
 
         </div>
 
-        {/* Right Column: Status & Alerts */}
+        {/* Right Column: Database & Storage Health Overview */}
         <div className="flex flex-col gap-6">
           
-          <div className="bg-slate-800 p-6 rounded-2xl shadow-lg relative overflow-hidden">
+          <div className="bg-slate-900 p-6 rounded-2xl shadow-lg relative overflow-hidden text-white flex flex-col justify-between">
             <div className="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl"></div>
-            <h2 className="text-[15px] font-bold text-white mb-6 flex items-center gap-2 relative z-10">
-              <Server className="text-indigo-400" size={18} /> System Status
-            </h2>
             
-            <div className="space-y-4 relative z-10">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-700">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                  <span className="text-[13px] font-bold text-slate-300">API Servers</span>
-                </div>
-                <span className="text-[12px] font-mono text-emerald-400">99.99%</span>
-              </div>
+            <div>
+              <h2 className="text-[15px] font-bold mb-4 flex items-center gap-2 text-indigo-300">
+                <Database size={18} /> Engine & Storage Status
+              </h2>
               
-              <div className="flex items-center justify-between pb-4 border-b border-slate-700">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                  <span className="text-[13px] font-bold text-slate-300">File Storage (S3)</span>
+              <div className="space-y-4 text-[13px]">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <span className="text-slate-400 font-medium">Prisma Database</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    HTTP Connected
+                  </span>
                 </div>
-                <span className="text-[12px] font-mono text-emerald-400">100.0%</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
-                  <span className="text-[13px] font-bold text-slate-300">Search Cluster</span>
+
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <span className="text-slate-400 font-medium">Active Documents Ratio</span>
+                  <span className="font-bold font-mono text-slate-200">
+                    {metrics && metrics.totalDocuments > 0
+                      ? `${Math.round(((metrics.totalDocuments - metrics.trashedCount) / metrics.totalDocuments) * 100)}%`
+                      : "100%"}
+                  </span>
                 </div>
-                <span className="text-[12px] font-mono text-amber-400">High Load</span>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-medium">Trash Retention</span>
+                  <span className="font-bold font-mono text-slate-200">
+                    {metrics ? `${formatBytes(metrics.trashedStorageBytes)}` : "0 B"}
+                  </span>
+                </div>
               </div>
+            </div>
+
+            <div className="mt-6 p-3 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-start gap-2.5">
+              <ArrowUpRight size={16} className="text-indigo-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-slate-300 font-medium leading-relaxed">
+                Document contents are stored as HTML/plainText in PostgreSQL. Average size reflects payload length.
+              </p>
             </div>
           </div>
 
-          <div className="bg-rose-50 border border-rose-200 p-5 rounded-2xl flex gap-4">
-            <AlertCircle className="text-rose-600 shrink-0 mt-0.5" size={20} />
+          <div className="bg-indigo-50/50 border border-indigo-100 p-5 rounded-2xl flex flex-col justify-between">
             <div>
-              <h3 className="text-[13px] font-bold text-rose-800">Storage Warning</h3>
-              <p className="text-[12px] font-medium text-rose-600 mt-1 leading-relaxed">
-                You are approaching your 5TB global storage limit. Once exceeded, uploads may be restricted until capacity is expanded.
+              <h3 className="text-[13px] font-extrabold text-indigo-900 flex items-center gap-2">
+                <HardDrive size={16} className="text-indigo-600" /> Storage Capacity Note
+              </h3>
+              <p className="text-[12px] font-medium text-indigo-700 mt-2 leading-relaxed">
+                Document storage is calculated dynamically from content strings in PostgreSQL. No cloud object storage quota is currently impacted.
               </p>
-              <button className="mt-3 text-[12px] font-bold text-rose-700 hover:text-rose-800 underline underline-offset-2">
-                Review storage plans
-              </button>
             </div>
           </div>
 

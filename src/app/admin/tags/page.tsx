@@ -1,130 +1,114 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { 
-  Tag, Search, Filter, Plus, MoreVertical, Edit3, Trash2, 
-  TrendingUp, TrendingDown, Minus
+  Tag, 
+  Sparkles, 
+  GitMerge, 
+  BarChart3, 
+  Clock, 
+  Construction
 } from "lucide-react";
 
-// Dummy data for tags
-const MOCK_TAGS = [
-  { id: "TAG-01", name: "reactjs", usage: 3450, trend: "up", createdBy: "System" },
-  { id: "TAG-02", name: "marketing2024", usage: 1205, trend: "up", createdBy: "Naman Agarwal" },
-  { id: "TAG-03", name: "bug-report", usage: 840, trend: "down", createdBy: "Tony Stark" },
-  { id: "TAG-04", name: "design-system", usage: 2200, trend: "up", createdBy: "Emma Watson" },
-  { id: "TAG-05", name: "drafts", usage: 50, trend: "flat", createdBy: "Sarah Connor" },
-  { id: "TAG-06", name: "deprecated", usage: 12, trend: "down", createdBy: "System" },
-];
-
 export default function AdminTagsPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const getTrendIcon = (trend: string) => {
-    switch(trend) {
-      case "up": return <TrendingUp size={14} className="text-emerald-500" />;
-      case "down": return <TrendingDown size={14} className="text-rose-500" />;
-      case "flat": return <Minus size={14} className="text-slate-400" />;
-      default: return null;
-    }
-  };
-
   return (
-    <div className="w-full max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="w-full max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
-            <Tag className="text-indigo-500" size={24} />
+          <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+              <Tag size={22} />
+            </div>
             Tags
           </h1>
-          <p className="text-[13px] font-medium text-slate-500 mt-1">Manage global tags, view trending topics, and merge duplicates.</p>
+          <p className="text-[13px] font-medium text-slate-500 mt-1">
+            Tag management is a planned feature.
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="h-10 px-4 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-[13px] hover:bg-slate-50 transition-colors flex items-center gap-2 shadow-sm">
-            <Filter size={16} /> Filters
-          </button>
-          <button className="h-10 px-4 rounded-xl bg-indigo-600 text-white font-bold text-[13px] hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-md shadow-indigo-500/20">
-            <Plus size={16} /> Add Tag
-          </button>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+            Planned Feature
+          </span>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden flex flex-col">
-        
-        {/* Toolbar */}
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search tags..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-[13px] font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 shadow-sm"
-            />
-          </div>
-          <div className="flex items-center gap-2 text-[13px] font-medium text-slate-500">
-            Showing <span className="font-bold text-slate-700">{MOCK_TAGS.length}</span> tags
-          </div>
-        </div>
+      {/* Main Empty State Hero Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-8 sm:p-12 text-center relative overflow-hidden">
+        {/* Background glow decoration */}
+        <div className="absolute -right-12 -top-12 w-64 h-64 bg-indigo-50/50 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -left-12 -bottom-12 w-64 h-64 bg-slate-100/60 rounded-full blur-3xl pointer-events-none"></div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tag Name</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Usage Count</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Trend</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Created By</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {MOCK_TAGS.map((tag) => (
-                <tr key={tag.id} className="hover:bg-slate-50/80 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col items-start gap-1">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[12px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
-                        #{tag.name}
-                      </span>
-                      <span className="text-[11px] font-bold text-slate-400 font-mono">{tag.id}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-[14px] font-bold text-slate-700">
-                      {tag.usage.toLocaleString()}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 border border-slate-200">
-                      {getTrendIcon(tag.trend)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-[13px] font-medium text-slate-600">{tag.createdBy}</span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Edit Tag">
-                        <Edit3 size={16} />
-                      </button>
-                      <button className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Delete Tag">
-                        <Trash2 size={16} />
-                      </button>
-                      <button className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                        <MoreVertical size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="relative z-10 max-w-lg mx-auto flex flex-col items-center">
+          {/* Illustration Placeholder */}
+          <div className="relative mb-6">
+            <div className="w-20 h-20 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-sm">
+              <Tag size={38} />
+            </div>
+            <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center border border-amber-200 shadow-xs">
+              <Construction size={18} />
+            </div>
+          </div>
+
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Tag Management Coming Soon</h2>
+          <p className="text-sm text-slate-500 leading-relaxed mb-6">
+            Flexible tagging capabilities are currently in development. You will soon be able to index, search, and analyze notes using dynamic tag taxonomies.
+          </p>
+
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-600">
+            <Clock size={15} className="text-indigo-500" />
+            <span>Under Active Design & Development</span>
+          </div>
         </div>
       </div>
+
+      {/* Planned Features Section */}
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <Sparkles size={18} className="text-indigo-500" />
+            Planned Tag Features
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Feature 1 */}
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm hover:border-indigo-200 transition-all">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4 border border-indigo-100">
+              <Sparkles size={20} />
+            </div>
+            <h3 className="text-base font-bold text-slate-800 mb-1">Auto-tagging with AI</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Automatic extraction of key entities, topics, and relevant tags from document text using AI natural language processing.
+            </p>
+          </div>
+
+          {/* Feature 2 */}
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm hover:border-indigo-200 transition-all">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4 border border-indigo-100">
+              <GitMerge size={20} />
+            </div>
+            <h3 className="text-base font-bold text-slate-800 mb-1">Tag merging and synonyms</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Clean up duplicate tags, consolidate similar topics, and define global synonyms for seamless note discovery.
+            </p>
+          </div>
+
+          {/* Feature 3 */}
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm hover:border-indigo-200 transition-all">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4 border border-indigo-100">
+              <BarChart3 size={20} />
+            </div>
+            <h3 className="text-base font-bold text-slate-800 mb-1">Tag usage analytics</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Comprehensive analytics on tag popularity, trending topics, and distribution across user notes and workspaces.
+            </p>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }

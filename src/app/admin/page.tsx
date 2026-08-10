@@ -1,509 +1,736 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
-  Users, FileText, Folder, Edit2, ArrowUpRight, 
-  Calendar, CheckCircle2, ChevronRight, UserPlus, 
-  PlusSquare, LayoutGrid, FileSpreadsheet, Settings, Trash, 
-  Trash2, Edit3, RefreshCw, Loader2, AlertCircle
+  Users, 
+  FileText, 
+  UserCheck, 
+  Zap, 
+  TrendingUp, 
+  ExternalLink, 
+  RefreshCw, 
+  AlertCircle, 
+  Loader2, 
+  ChevronRight, 
+  UserPlus, 
+  LifeBuoy, 
+  Activity, 
+  CheckCircle2, 
+  Mic, 
+  Folder, 
+  ArrowUpRight, 
+  Shield, 
+  PieChart, 
+  Terminal,
+  HelpCircle,
+  Clock
 } from "lucide-react";
 
-interface UserActivity {
-  id: string;
-  email: string;
-  clerkId: string;
-  role: string;
+interface PlanItem {
   plan: string;
-  createdAt: string;
+  key: string;
+  count: number;
+  percentage: number;
+  color: string;
+  barColor: string;
+  badgeBg: string;
 }
 
-interface NoteActivity {
-  id: string;
-  title: string;
-  userId: string;
-  createdAt: string;
-}
-
-interface AdminStatsData {
+interface StatsData {
   totalUsers: number;
   totalNotes: number;
+  totalDocuments: number;
   totalWorkspaces: number;
   activeUsers7d: number;
+  activeUsers: number;
+  totalGenerations: number;
+  userGrowthPercentage: number;
+  planDistribution: PlanItem[];
   estimatedStorageBytes: number;
   estimatedStorageSize: string;
-  recentActivities: {
-    latestUsers: UserActivity[];
-    latestNotes: NoteActivity[];
+}
+
+interface ActivityItem {
+  id: string;
+  type: "user_registered" | "document_created" | "support_ticket" | "voice_preset";
+  title: string;
+  description: string;
+  userEmail?: string;
+  createdAt: string;
+}
+
+interface RecentUser {
+  id: string;
+  clerkId: string;
+  email: string;
+  role: string;
+  plan: string;
+  usageCount: number;
+  isSuspended: boolean;
+  createdAt: string;
+  _count?: {
+    documents: number;
+    ownedWorkspaces: number;
   };
 }
 
 export default function AdminDashboard() {
-  const [timeRange, setTimeRange] = useState("7d");
-  const [data, setData] = useState<AdminStatsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
 
-  const fetchStats = async (range: string) => {
-    setIsLoading(true);
-    setError(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(true);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+
+  const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Fetch Stats
+  const fetchStats = useCallback(async () => {
+    setIsLoadingStats(true);
     try {
-      const res = await fetch(`/api/admin/stats?timeRange=${range}`);
-      if (!res.ok) {
-        throw new Error(`Failed to load admin stats (${res.status})`);
-      }
-      const json: AdminStatsData = await res.json();
-      setData(json);
+      const res = await fetch("/api/admin/stats");
+      if (!res.ok) throw new Error(`Stats fetch failed (${res.status})`);
+      const data: StatsData = await res.json();
+      setStats(data);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error fetching stats";
-      setError(message);
+      const msg = err instanceof Error ? err.message : "Error fetching stats";
+      setError(msg);
     } finally {
-      setIsLoading(false);
+      setIsLoadingStats(false);
     }
+  }, []);
+
+  // Fetch Activity Timeline (last 10)
+  const fetchActivities = useCallback(async () => {
+    setIsLoadingActivities(true);
+    try {
+      const res = await fetch("/api/admin/activity");
+      if (!res.ok) throw new Error(`Activities fetch failed (${res.status})`);
+      const data = await res.json();
+      setActivities(data.activities || []);
+    } catch (err: unknown) {
+      console.error("Activity fetch error:", err);
+    } finally {
+      setIsLoadingActivities(false);
+    }
+  }, []);
+
+  // Fetch Recent Users (limit 5)
+  const fetchRecentUsers = useCallback(async () => {
+    setIsLoadingUsers(true);
+    try {
+      const res = await fetch("/api/admin/users?limit=5");
+      if (!res.ok) throw new Error(`Users fetch failed (${res.status})`);
+      const data = await res.json();
+      setRecentUsers(data.users || []);
+    } catch (err: unknown) {
+      console.error("Recent users fetch error:", err);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, []);
+
+  // Comprehensive Refresh
+  const handleRefreshAll = async () => {
+    setIsRefreshing(true);
+    setError(null);
+    await Promise.all([fetchStats(), fetchActivities(), fetchRecentUsers()]);
+    setIsRefreshing(false);
   };
 
   useEffect(() => {
-    fetchStats(timeRange);
-  }, [timeRange]);
+    fetchStats();
+    fetchActivities();
+    fetchRecentUsers();
+  }, [fetchStats, fetchActivities, fetchRecentUsers]);
 
-  const handleDateChange = () => {
-    const options = ["7d", "30d", "1y"];
-    const nextIndex = (options.indexOf(timeRange) + 1) % options.length;
-    setTimeRange(options[nextIndex]);
+  const formatDate = (isoString: string) => {
+    if (!isoString) return "";
+    const d = new Date(isoString);
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
-  const dateLabel = timeRange === "7d" ? "Last 7 Days" : timeRange === "30d" ? "Last 30 Days" : "This Year";
+  const getActivityIcon = (type: ActivityItem["type"]) => {
+    switch (type) {
+      case "user_registered":
+        return <UserPlus size={14} className="text-purple-600" />;
+      case "document_created":
+        return <FileText size={14} className="text-blue-600" />;
+      case "support_ticket":
+        return <LifeBuoy size={14} className="text-amber-600" />;
+      case "voice_preset":
+        return <Mic size={14} className="text-emerald-600" />;
+      default:
+        return <Activity size={14} className="text-indigo-600" />;
+    }
+  };
 
-  // Build combined recent activities sorted by date
-  const formattedActivities = React.useMemo(() => {
-    if (!data) return [];
-    const items: Array<{
-      id: string;
-      icon: typeof UserPlus;
-      color: string;
-      title: string;
-      action: string;
-      target: string;
-      time: string;
-      rawDate: Date;
-    }> = [];
-
-    data.recentActivities.latestUsers.forEach((u) => {
-      items.push({
-        id: `user-${u.id}`,
-        icon: UserPlus,
-        color: "indigo",
-        title: u.email || "New User",
-        action: "registered account",
-        target: `Plan: ${u.plan || "FREE"}`,
-        time: new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
-        rawDate: new Date(u.createdAt),
-      });
-    });
-
-    data.recentActivities.latestNotes.forEach((n) => {
-      items.push({
-        id: `note-${n.id}`,
-        icon: Edit3,
-        color: "blue",
-        title: `Note "${n.title || "Untitled"}"`,
-        action: "created",
-        target: `User: ${n.userId.substring(0, 8)}...`,
-        time: new Date(n.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
-        rawDate: new Date(n.createdAt),
-      });
-    });
-
-    items.sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
-    return items.slice(0, 6);
-  }, [data]);
-
-  // Derived metrics
-  const storageMB = data ? (data.estimatedStorageBytes / (1024 * 1024)).toFixed(2) : "0.00";
-  const storageGB = data ? (data.estimatedStorageBytes / (1024 * 1024 * 1024)).toFixed(4) : "0.0000";
+  const getActivityBadgeBg = (type: ActivityItem["type"]) => {
+    switch (type) {
+      case "user_registered":
+        return "bg-purple-100 border-purple-200";
+      case "document_created":
+        return "bg-blue-100 border-blue-200";
+      case "support_ticket":
+        return "bg-amber-100 border-amber-200";
+      case "voice_preset":
+        return "bg-emerald-100 border-emerald-200";
+      default:
+        return "bg-indigo-100 border-indigo-200";
+    }
+  };
 
   return (
-    <div className="flex flex-col xl:flex-row gap-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+    <div className="flex flex-col gap-6 max-w-[1600px] mx-auto animate-in fade-in duration-300 pb-12">
       
-      {/* Left Main Content */}
-      <div className="flex-1 flex flex-col gap-6 min-w-0">
+      {/* Top Header & Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Admin Dashboard</h1>
+            <span className="bg-indigo-50 text-indigo-600 text-xs font-bold px-2.5 py-0.5 rounded-full border border-indigo-100 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+              Live System
+            </span>
+          </div>
+          <p className="text-xs font-medium text-slate-500">
+            Real-time insights, user statistics, activity feed, and diagnostic controls.
+          </p>
+        </div>
+
+        <button
+          onClick={handleRefreshAll}
+          disabled={isRefreshing}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50 shrink-0"
+        >
+          <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
+          <span>{isRefreshing ? "Refreshing..." : "Refresh Dashboard"}</span>
+        </button>
+      </div>
+
+      {/* Global Error Banner */}
+      {error && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl flex items-center justify-between text-xs font-medium animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={18} className="text-rose-500 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={handleRefreshAll}
+            className="px-3 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-lg font-bold text-xs transition-colors"
+          >
+            Retry Fetch
+          </button>
+        </div>
+      )}
+
+      {/* 1. Stat Cards Row (4 Cards) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
-        {error && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl flex items-center justify-between text-[13px] font-medium">
-            <div className="flex items-center gap-2">
-              <AlertCircle size={18} className="text-rose-500 shrink-0" />
-              <span>{error}</span>
+        {/* Card 1: Total Users */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
+          {isLoadingStats ? (
+            <div className="animate-pulse space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="w-12 h-12 bg-slate-100 rounded-xl"></div>
+                <div className="w-20 h-4 bg-slate-100 rounded"></div>
+              </div>
+              <div className="w-24 h-8 bg-slate-100 rounded mt-2"></div>
+              <div className="w-32 h-4 bg-slate-100 rounded mt-2"></div>
             </div>
-            <button 
-              onClick={() => fetchStats(timeRange)}
-              className="px-3 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-lg font-bold text-[12px] transition-colors"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
-        {/* Stat Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          
-          {/* Card 1: Users */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden">
-            {isLoading && (
-              <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                <Loader2 className="animate-spin text-indigo-500" size={24} />
+          ) : (
+            <>
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shadow-inner">
+                  <Users size={24} />
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-bold text-slate-500 mb-1">Total Users</p>
+                  <h3 className="text-2xl font-black text-slate-800 leading-none">
+                    {stats ? stats.totalUsers.toLocaleString() : 0}
+                  </h3>
+                </div>
               </div>
-            )}
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
-                <Users size={24} />
+              <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-50">
+                <span className="text-emerald-600 font-bold flex items-center gap-1">
+                  <TrendingUp size={14} />
+                  +{stats?.userGrowthPercentage || 0}%
+                </span>
+                <span className="text-slate-400 font-medium">vs last month</span>
               </div>
-              <div className="text-right">
-                <p className="text-[12px] font-bold text-slate-500 mb-1">Total Users</p>
-                <h3 className="text-[24px] font-extrabold text-slate-800 leading-none">
-                  {data?.totalUsers !== undefined ? data.totalUsers.toLocaleString() : "---"}
-                </h3>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="text-emerald-500 flex items-center gap-0.5"><ArrowUpRight size={14} /> Live</span>
-              <span className="text-slate-400 font-medium">real-time count</span>
-            </div>
-          </div>
-
-          {/* Card 2: Notes */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden">
-            {isLoading && (
-              <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                <Loader2 className="animate-spin text-blue-500" size={24} />
-              </div>
-            )}
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                <FileText size={24} />
-              </div>
-              <div className="text-right">
-                <p className="text-[12px] font-bold text-slate-500 mb-1">Total Notes</p>
-                <h3 className="text-[24px] font-extrabold text-slate-800 leading-none">
-                  {data?.totalNotes !== undefined ? data.totalNotes.toLocaleString() : "---"}
-                </h3>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="text-emerald-500 flex items-center gap-0.5"><ArrowUpRight size={14} /> Live</span>
-              <span className="text-slate-400 font-medium">real-time count</span>
-            </div>
-          </div>
-
-          {/* Card 3: Workspaces */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden">
-            {isLoading && (
-              <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                <Loader2 className="animate-spin text-emerald-500" size={24} />
-              </div>
-            )}
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                <Folder size={24} />
-              </div>
-              <div className="text-right">
-                <p className="text-[12px] font-bold text-slate-500 mb-1">Total Notebooks</p>
-                <h3 className="text-[24px] font-extrabold text-slate-800 leading-none">
-                  {data?.totalWorkspaces !== undefined ? data.totalWorkspaces.toLocaleString() : "---"}
-                </h3>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="text-emerald-500 flex items-center gap-0.5"><ArrowUpRight size={14} /> Live</span>
-              <span className="text-slate-400 font-medium">real-time count</span>
-            </div>
-          </div>
-
-          {/* Card 4: Active Users */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden">
-            {isLoading && (
-              <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                <Loader2 className="animate-spin text-orange-500" size={24} />
-              </div>
-            )}
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-500 flex items-center justify-center">
-                <Edit2 size={24} />
-              </div>
-              <div className="text-right">
-                <p className="text-[12px] font-bold text-slate-500 mb-1">Active Users (7d)</p>
-                <h3 className="text-[24px] font-extrabold text-slate-800 leading-none">
-                  {data?.activeUsers7d !== undefined ? data.activeUsers7d.toLocaleString() : "---"}
-                </h3>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="text-emerald-500 flex items-center gap-0.5"><ArrowUpRight size={14} /> Active</span>
-              <span className="text-slate-400 font-medium">last 7 days</span>
-            </div>
-          </div>
-
+            </>
+          )}
         </div>
 
-        {/* Charts Row 1 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Overview Chart */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 relative overflow-hidden">
-            {isLoading && (
-              <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                <Loader2 className="animate-spin text-indigo-500" size={32} />
+        {/* Card 2: Total Documents */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
+          {isLoadingStats ? (
+            <div className="animate-pulse space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="w-12 h-12 bg-slate-100 rounded-xl"></div>
+                <div className="w-20 h-4 bg-slate-100 rounded"></div>
               </div>
-            )}
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-[14px] font-extrabold text-slate-800">Overview</h3>
-              <select 
-                className="text-[11px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-slate-300"
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-              >
-                <option value="7d">Last 7 Days</option>
-                <option value="30d">Last 30 Days</option>
-                <option value="1y">This Year</option>
-              </select>
+              <div className="w-24 h-8 bg-slate-100 rounded mt-2"></div>
+              <div className="w-32 h-4 bg-slate-100 rounded mt-2"></div>
             </div>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex items-center gap-2"><span className="w-2 h-0.5 bg-purple-500 rounded-full"></span><span className="text-[10px] font-bold text-slate-500">Users ({data?.totalUsers || 0})</span></div>
-              <div className="flex items-center gap-2"><span className="w-2 h-0.5 bg-blue-500 rounded-full"></span><span className="text-[10px] font-bold text-slate-500">Notes ({data?.totalNotes || 0})</span></div>
-              <div className="flex items-center gap-2"><span className="w-2 h-0.5 bg-emerald-500 rounded-full"></span><span className="text-[10px] font-bold text-slate-500">Notebooks ({data?.totalWorkspaces || 0})</span></div>
-            </div>
-            <div className="w-full h-[220px] relative mt-4 border-l border-b border-slate-100 text-[10px] font-medium text-slate-400">
-              
-              {/* Y-axis labels */}
-              <div className="absolute -left-6 bottom-[10%]">10</div>
-              <div className="absolute -left-6 bottom-[30%]">50</div>
-              <div className="absolute -left-6 bottom-[50%]">100</div>
-              <div className="absolute -left-6 bottom-[70%]">250</div>
-              <div className="absolute -left-6 bottom-[90%]">500</div>
-
-              {/* Grid lines */}
-              <div className="absolute left-0 bottom-[10%] w-full border-t border-slate-50"></div>
-              <div className="absolute left-0 bottom-[30%] w-full border-t border-slate-50"></div>
-              <div className="absolute left-0 bottom-[50%] w-full border-t border-slate-50"></div>
-              <div className="absolute left-0 bottom-[70%] w-full border-t border-slate-50"></div>
-              <div className="absolute left-0 bottom-[90%] w-full border-t border-slate-50"></div>
-
-              {/* SVG Chart Lines */}
-              <svg className="w-full h-full absolute inset-0 overflow-visible transition-all duration-700" preserveAspectRatio="none" viewBox="0 0 100 100">
-                {timeRange === "7d" && (
-                  <>
-                    <path d="M0,70 C20,65 30,50 50,55 C70,60 80,45 100,40" fill="none" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M0,50 C20,45 30,35 50,45 C70,55 80,35 100,30" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M0,25 C20,30 30,20 50,25 C70,30 80,15 100,10" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
-                  </>
-                )}
-                {timeRange === "30d" && (
-                  <>
-                    <path d="M0,80 C20,45 30,60 50,35 C70,40 80,25 100,15" fill="none" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M0,60 C20,35 30,25 50,15 C70,25 80,15 100,5" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M0,35 C20,40 30,10 50,15 C70,20 80,5 100,0" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
-                  </>
-                )}
-                {timeRange === "1y" && (
-                  <>
-                    <path d="M0,90 C10,85 20,60 50,45 C80,30 90,15 100,10" fill="none" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M0,70 C10,65 20,40 50,25 C80,10 90,5 100,0" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M0,45 C10,40 20,10 50,5 C80,0 90,0 100,0" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
-                  </>
-                )}
-              </svg>
-
-              {/* X-axis labels */}
-              <div className="absolute -bottom-6 left-0 w-full flex justify-between">
-                <span>Period Start</span><span>Mid</span><span>Period End</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Top Distribution / Stats Breakdown */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col relative overflow-hidden">
-            {isLoading && (
-              <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                <Loader2 className="animate-spin text-indigo-500" size={32} />
-              </div>
-            )}
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-[14px] font-extrabold text-slate-800">Resource Distribution</h3>
-              <span className="text-[11px] font-bold text-indigo-500">Live Breakdown</span>
-            </div>
-            
-            <div className="flex-1 flex flex-col justify-center gap-4 text-[12px]">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50/60 border border-purple-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center font-bold">
-                    <Users size={16} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-800">Registered Users</p>
-                    <p className="text-[10px] text-slate-500">Database user accounts</p>
-                  </div>
+          ) : (
+            <>
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-inner">
+                  <FileText size={24} />
                 </div>
-                <span className="text-[14px] font-extrabold text-purple-700">{data?.totalUsers || 0}</span>
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/60 border border-blue-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
-                    <FileText size={16} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-800">Documents / Notes</p>
-                    <p className="text-[10px] text-slate-500">Total documents stored</p>
-                  </div>
+                <div className="text-right">
+                  <p className="text-xs font-bold text-slate-500 mb-1">Total Documents</p>
+                  <h3 className="text-2xl font-black text-slate-800 leading-none">
+                    {stats ? (stats.totalDocuments ?? stats.totalNotes ?? 0).toLocaleString() : 0}
+                  </h3>
                 </div>
-                <span className="text-[14px] font-extrabold text-blue-700">{data?.totalNotes || 0}</span>
               </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/60 border border-emerald-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
-                    <Folder size={16} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-800">Workspaces</p>
-                    <p className="text-[10px] text-slate-500">Notebook collections</p>
-                  </div>
-                </div>
-                <span className="text-[14px] font-extrabold text-emerald-700">{data?.totalWorkspaces || 0}</span>
+              <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-50">
+                <span className="text-blue-600 font-bold flex items-center gap-1">
+                  <ArrowUpRight size={14} /> Real-time
+                </span>
+                <span className="text-slate-400 font-medium">stored notes</span>
               </div>
-            </div>
-
-          </div>
-
+            </>
+          )}
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-transparent mt-2">
-          <h3 className="text-[14px] font-extrabold text-slate-800 mb-4">Quick Actions</h3>
-          <div className="flex flex-wrap gap-4">
-            <a href="/admin/users" className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[12px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm">
-              <UserPlus size={16} className="text-indigo-500" /> Manage Users
-            </a>
-            <a href="/admin/analytics" className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[12px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm">
-              <FileSpreadsheet size={16} className="text-purple-500" /> View Analytics
-            </a>
-            <button 
-              onClick={() => fetchStats(timeRange)} 
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[12px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm"
-            >
-              <RefreshCw size={16} className={`text-slate-500 ${isLoading ? "animate-spin" : ""}`} /> Refresh Data
-            </button>
-          </div>
+        {/* Card 3: Active Users (7 days) */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
+          {isLoadingStats ? (
+            <div className="animate-pulse space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="w-12 h-12 bg-slate-100 rounded-xl"></div>
+                <div className="w-20 h-4 bg-slate-100 rounded"></div>
+              </div>
+              <div className="w-24 h-8 bg-slate-100 rounded mt-2"></div>
+              <div className="w-32 h-4 bg-slate-100 rounded mt-2"></div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-inner">
+                  <UserCheck size={24} />
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-bold text-slate-500 mb-1">Active Users</p>
+                  <h3 className="text-2xl font-black text-slate-800 leading-none">
+                    {stats ? (stats.activeUsers ?? stats.activeUsers7d ?? 0).toLocaleString() : 0}
+                  </h3>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-50">
+                <span className="text-emerald-600 font-bold flex items-center gap-1">
+                  <UserCheck size={14} /> Active
+                </span>
+                <span className="text-slate-400 font-medium">updated docs in 7d</span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Card 4: Total Generations */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
+          {isLoadingStats ? (
+            <div className="animate-pulse space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="w-12 h-12 bg-slate-100 rounded-xl"></div>
+                <div className="w-20 h-4 bg-slate-100 rounded"></div>
+              </div>
+              <div className="w-24 h-8 bg-slate-100 rounded mt-2"></div>
+              <div className="w-32 h-4 bg-slate-100 rounded mt-2"></div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shadow-inner">
+                  <Zap size={24} />
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-bold text-slate-500 mb-1">Total Generations</p>
+                  <h3 className="text-2xl font-black text-slate-800 leading-none">
+                    {stats ? (stats.totalGenerations ?? 0).toLocaleString() : 0}
+                  </h3>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-50">
+                <span className="text-amber-600 font-bold flex items-center gap-1">
+                  <Zap size={14} /> Total Usage
+                </span>
+                <span className="text-slate-400 font-medium">sum of usage counts</span>
+              </div>
+            </>
+          )}
         </div>
 
       </div>
 
-      {/* Right Sidebar */}
-      <div className="w-full xl:w-[320px] shrink-0 flex flex-col gap-6">
-        
-        {/* Date Picker Button */}
-        <button 
-          onClick={handleDateChange}
-          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between text-[12px] font-bold text-slate-600 shadow-sm hover:bg-slate-50 transition-colors relative overflow-hidden"
-        >
-          <div className="flex items-center gap-2 relative z-10">
-            <Calendar size={16} className="text-indigo-500" />
-            {dateLabel}
-          </div>
-          <ChevronRight size={14} className="text-slate-400 rotate-90 relative z-10" />
-        </button>
-
-        {/* Recent Activity */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col relative overflow-hidden">
-          {isLoading && (
-            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-              <Loader2 className="animate-spin text-indigo-500" size={32} />
+      {/* 2. Quick Actions Row */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-4">
+          Quick Actions & Shortcut Navigation
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <a
+            href="/admin/users"
+            className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-700 hover:bg-indigo-50/70 hover:border-indigo-200 hover:text-indigo-700 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <UserPlus size={16} />
+              </div>
+              <span>View All Users</span>
             </div>
-          )}
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-[14px] font-extrabold text-slate-800">Recent Activity</h3>
-            <span className="text-[11px] font-bold text-indigo-500">Live Feed</span>
-          </div>
+            <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+          </a>
+
+          <a
+            href="/admin/notes"
+            className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-700 hover:bg-blue-50/70 hover:border-blue-200 hover:text-blue-700 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <FileText size={16} />
+              </div>
+              <span>View All Notes</span>
+            </div>
+            <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+          </a>
+
+          <a
+            href="/admin/support"
+            className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-700 hover:bg-purple-50/70 hover:border-purple-200 hover:text-purple-700 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <LifeBuoy size={16} />
+              </div>
+              <span>Support Tickets</span>
+            </div>
+            <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+          </a>
+
+          <a
+            href="/api/admin/debug"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-700 hover:bg-emerald-50/70 hover:border-emerald-200 hover:text-emerald-700 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Terminal size={16} />
+              </div>
+              <span>System Diagnostics</span>
+            </div>
+            <ExternalLink size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+          </a>
+        </div>
+      </div>
+
+      {/* Main Grid Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Left 2 Columns */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
           
-          <div className="flex flex-col gap-5">
-            {formattedActivities.length === 0 ? (
-              <p className="text-[12px] font-medium text-slate-400 py-4 text-center">No recent activities found.</p>
+          {/* 4. Plan Distribution Section */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col relative">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <PieChart size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-800">Plan Distribution</h3>
+                  <p className="text-[11px] text-slate-500">Breakdown of active subscription tiers</p>
+                </div>
+              </div>
+              <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">
+                Total Users: {stats?.totalUsers || 0}
+              </span>
+            </div>
+
+            {isLoadingStats ? (
+              <div className="animate-pulse space-y-4 py-4">
+                <div className="h-6 bg-slate-100 rounded-full w-full"></div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="h-16 bg-slate-100 rounded-xl"></div>
+                  <div className="h-16 bg-slate-100 rounded-xl"></div>
+                  <div className="h-16 bg-slate-100 rounded-xl"></div>
+                </div>
+              </div>
             ) : (
-              formattedActivities.map((activity) => {
-                const Icon = activity.icon;
-                return (
-                  <div key={activity.id} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                      <Icon size={14} />
+              <div className="space-y-6">
+                
+                {/* Horizontal CSS Stacked Bar Chart */}
+                <div className="w-full h-6 bg-slate-100 rounded-full overflow-hidden flex p-1 border border-slate-200/60 shadow-inner">
+                  {(stats?.planDistribution || []).map((item) => (
+                    <div
+                      key={item.key}
+                      style={{ width: `${Math.max(item.percentage, item.count > 0 ? 5 : 0)}%` }}
+                      className={`h-full ${item.barColor} transition-all duration-700 first:rounded-l-full last:rounded-r-full relative group cursor-pointer`}
+                      title={`${item.plan}: ${item.count} users (${item.percentage}%)`}
+                    />
+                  ))}
+                </div>
+
+                {/* Individual Plan Detail Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {(stats?.planDistribution || [
+                    { plan: "Free", key: "FREE", count: 0, percentage: 0, color: "bg-slate-500", barColor: "bg-slate-500", badgeBg: "bg-slate-100 text-slate-700 border-slate-200" },
+                    { plan: "Pro", key: "PRO", count: 0, percentage: 0, color: "bg-indigo-500", barColor: "bg-indigo-600", badgeBg: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+                    { plan: "Agency", key: "AGENCY", count: 0, percentage: 0, color: "bg-purple-500", barColor: "bg-purple-600", badgeBg: "bg-purple-50 text-purple-700 border-purple-200" }
+                  ]).map((item) => (
+                    <div
+                      key={item.key}
+                      className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-col justify-between hover:bg-white hover:shadow-sm transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded border ${item.badgeBg}`}>
+                          {item.plan}
+                        </span>
+                        <span className="text-xs font-bold text-slate-500">{item.percentage}%</span>
+                      </div>
+                      <div className="flex items-baseline justify-between mt-1">
+                        <span className="text-xl font-black text-slate-800">{item.count.toLocaleString()}</span>
+                        <span className="text-[11px] text-slate-400 font-medium">users</span>
+                      </div>
+
+                      {/* Mini Progress Bar for each plan */}
+                      <div className="w-full h-1.5 bg-slate-200 rounded-full mt-3 overflow-hidden">
+                        <div
+                          style={{ width: `${item.percentage}%` }}
+                          className={`h-full ${item.barColor} rounded-full transition-all duration-500`}
+                        />
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[12px] font-medium text-slate-800 leading-tight truncate">
-                        <span className="font-bold">{activity.title}</span> {activity.action}
-                      </p>
-                      <p className="text-[11px] font-bold text-indigo-600 mt-0.5 truncate">{activity.target}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{activity.time}</p>
-                    </div>
-                  </div>
-                );
-              })
+                  ))}
+                </div>
+
+              </div>
             )}
           </div>
-        </div>
 
-        {/* System Status */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-[14px] font-extrabold text-slate-800">System Status</h3>
-            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded">All Good</span>
-          </div>
-          
-          <div className="flex flex-col gap-4">
-            {["Web Application", "Database (Prisma)", "File Storage", "Auth Service"].map((service, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center">
-                    <CheckCircle2 size={12} strokeWidth={3} />
-                  </div>
-                  <span className="text-[12px] font-bold text-slate-700">{service}</span>
-                </div>
-                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Operational</span>
+          {/* 5. Recent Users Table */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">Recent Registrations</h3>
+                <p className="text-[11px] text-slate-500">Latest 5 users who joined GemmaNote</p>
               </div>
-            ))}
+              <a
+                href="/admin/users"
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 hover:underline"
+              >
+                View All Users <ChevronRight size={14} />
+              </a>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+                    <th className="py-3 px-2">User Email</th>
+                    <th className="py-3 px-2">Plan</th>
+                    <th className="py-3 px-2">Role</th>
+                    <th className="py-3 px-2 text-center">Generations</th>
+                    <th className="py-3 px-2 text-right">Joined</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {isLoadingUsers ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        <td className="py-3.5 px-2">
+                          <div className="h-4 bg-slate-100 rounded w-36"></div>
+                        </td>
+                        <td className="py-3.5 px-2">
+                          <div className="h-4 bg-slate-100 rounded w-12"></div>
+                        </td>
+                        <td className="py-3.5 px-2">
+                          <div className="h-4 bg-slate-100 rounded w-12"></div>
+                        </td>
+                        <td className="py-3.5 px-2 text-center">
+                          <div className="h-4 bg-slate-100 rounded w-8 mx-auto"></div>
+                        </td>
+                        <td className="py-3.5 px-2 text-right">
+                          <div className="h-4 bg-slate-100 rounded w-20 ml-auto"></div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : recentUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-400 font-medium">
+                        No recent users found.
+                      </td>
+                    </tr>
+                  ) : (
+                    recentUsers.map((u) => {
+                      const isPro = (u.plan || "").toUpperCase() === "PRO";
+                      const isAgency = (u.plan || "").toUpperCase() === "AGENCY";
+                      const isAdmin = (u.role || "").toUpperCase() === "ADMIN";
+
+                      return (
+                        <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-3 px-2 font-bold text-slate-800 max-w-[180px] truncate">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-[10px]">
+                                {u.email ? u.email[0].toUpperCase() : "U"}
+                              </div>
+                              <span className="truncate" title={u.email}>{u.email}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-2">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${
+                                isAgency
+                                  ? "bg-purple-50 text-purple-700 border-purple-200"
+                                  : isPro
+                                  ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                  : "bg-slate-100 text-slate-600 border-slate-200"
+                              }`}
+                            >
+                              {u.plan || "FREE"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                isAdmin
+                                  ? "bg-rose-50 text-rose-600 border border-rose-200"
+                                  : "text-slate-500 font-medium"
+                              }`}
+                            >
+                              {u.role || "USER"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 text-center font-bold text-slate-700">
+                            {u.usageCount || 0}
+                          </td>
+                          <td className="py-3 px-2 text-right text-slate-400 font-medium">
+                            {formatDate(u.createdAt)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
+
         </div>
 
-        {/* Storage Usage */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col relative overflow-hidden">
-          {isLoading && (
-            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-              <Loader2 className="animate-spin text-indigo-500" size={32} />
-            </div>
-          )}
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-[14px] font-extrabold text-slate-800">Estimated Storage</h3>
-            <span className="text-[11px] font-bold text-indigo-500">Live Size</span>
-          </div>
+        {/* Right 1 Column (Sidebar) */}
+        <div className="flex flex-col gap-6">
           
-          <div className="flex justify-between items-end mb-2">
-            <span className="text-[12px] font-bold text-slate-800">
-              {data?.estimatedStorageSize || `${storageMB} KB`}
-            </span>
-            <span className="text-[12px] font-bold text-slate-400">DB Size</span>
+          {/* 3. Recent Activity Timeline Section */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col relative">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <Activity size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-800">Recent Activity</h3>
+                  <p className="text-[11px] text-slate-500">Live platform timeline</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                Last 10 Items
+              </span>
+            </div>
+
+            {isLoadingActivities ? (
+              <div className="space-y-4 py-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex gap-3 animate-pulse">
+                    <div className="w-7 h-7 bg-slate-100 rounded-full shrink-0"></div>
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3.5 bg-slate-100 rounded w-3/4"></div>
+                      <div className="h-3 bg-slate-100 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : activities.length === 0 ? (
+              <p className="text-xs font-medium text-slate-400 py-8 text-center">
+                No recent activity records found.
+              </p>
+            ) : (
+              <div className="relative pl-3 space-y-6 before:content-[''] before:absolute before:left-6 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-100">
+                {activities.map((item) => (
+                  <div key={item.id} className="relative flex items-start gap-3 group">
+                    <div
+                      className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 border z-10 ${getActivityBadgeBg(
+                        item.type
+                      )} group-hover:scale-110 transition-transform`}
+                    >
+                      {getActivityIcon(item.type)}
+                    </div>
+                    <div className="min-w-0 flex-1 bg-slate-50/50 p-2.5 rounded-xl border border-slate-100/80 group-hover:bg-white group-hover:shadow-sm transition-all">
+                      <p className="text-xs font-bold text-slate-800 leading-snug truncate" title={item.title}>
+                        {item.title}
+                      </p>
+                      <p className="text-[11px] font-medium text-slate-600 mt-0.5">
+                        {item.description}
+                      </p>
+                      {item.userEmail && (
+                        <p className="text-[10px] text-indigo-600 font-bold mt-1 truncate">
+                          {item.userEmail}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium mt-1">
+                        <Clock size={10} />
+                        <span>{formatDate(item.createdAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="w-full h-2.5 bg-slate-100 rounded-full mb-6 overflow-hidden">
-            <div className="h-full bg-indigo-500 rounded-full transition-all duration-700 ease-in-out w-[15%]"></div>
+          {/* System Health Card */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <Shield size={16} className="text-emerald-500" />
+                <h3 className="text-sm font-extrabold text-slate-800">System Diagnostics</h3>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded">
+                Operational
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                { name: "Web Application", status: "Operational" },
+                { name: "Database (Neon Postgres)", status: "Connected" },
+                { name: "Auth Provider (Clerk)", status: "Active" },
+                { name: "Prisma HTTP Client", status: "Ready" },
+              ].map((sys, idx) => (
+                <div key={idx} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-none">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                    <span className="text-xs font-bold text-slate-700">{sys.name}</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                    {sys.status}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="flex justify-between items-center text-center">
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 mb-0.5">Total Notes</p>
-              <p className="text-[14px] font-extrabold text-slate-800">{data?.totalNotes !== undefined ? data.totalNotes.toLocaleString() : "---"}</p>
-            </div>
-            <div className="w-px h-6 bg-slate-200"></div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 mb-0.5">Bytes Count</p>
-              <p className="text-[14px] font-extrabold text-slate-800">{data?.estimatedStorageBytes !== undefined ? `${(data.estimatedStorageBytes / 1024).toFixed(1)} KB` : "---"}</p>
-            </div>
-          </div>
         </div>
 
       </div>

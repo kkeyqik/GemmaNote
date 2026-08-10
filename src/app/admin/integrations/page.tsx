@@ -1,105 +1,147 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { 
-  Blocks, Search, Plus, 
-  MessageSquare, ToggleRight, ToggleLeft
+  Blocks, 
+  MessageSquare, 
+  Code, 
+  FileText, 
+  Zap, 
+  Sparkles, 
+  Clock, 
+  Construction 
 } from "lucide-react";
 
-const GithubIcon = ({size}: {size:number}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3-.3 6-1.5 6-6.5a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 5 3 6.2 6 6.5a4.8 4.8 0 0 0-1 3.2v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>;
-const SlackIcon = ({size}: {size:number}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22.08 9C19.81 1.41 16.54-.35 9 1.92S-.35 7.46 1.92 15 7.46 24.35 15 22.08 24.35 16.54 22.08 9z"/><path d="M12.57 5.99a.62.62 0 0 0-.3.44l-.86 3.14a.59.59 0 0 0 .43.74l3.14.86a.59.59 0 0 0 .74-.43l.86-3.14a.59.59 0 0 0-.43-.74l-3.14-.86z"/><path d="M18.3 14.3a.59.59 0 0 0-.74.43l-.86 3.14a.59.59 0 0 0 .43.74l3.14.86a.59.59 0 0 0 .74-.43l.86-3.14a.59.59 0 0 0-.43-.74l-3.14-.86z"/><path d="M11.43 18.01a.59.59 0 0 0 .3-.44l.86-3.14a.59.59 0 0 0-.43-.74l-3.14-.86a.59.59 0 0 0-.74.43l-.86 3.14a.59.59 0 0 0 .43.74l3.14.86z"/><path d="M5.7 9.7a.59.59 0 0 0 .74-.43l.86-3.14a.59.59 0 0 0-.43-.74L3.73 4.53a.59.59 0 0 0-.74.43l-.86 3.14a.59.59 0 0 0 .43.74l3.14.86z"/></svg>;
-const TrelloIcon = ({size}: {size:number}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><rect width="3" height="9" x="7" y="7"/><rect width="3" height="5" x="14" y="7"/></svg>;
-
-// Dummy data for integrations
-const INITIAL_INTEGRATIONS = [
-  { id: "INT-01", name: "Slack", description: "Send notifications to Slack channels for new notes and updates.", status: true, icon: <SlackIcon size={24} /> },
-  { id: "INT-02", name: "GitHub", description: "Link notes directly to GitHub issues and pull requests.", status: false, icon: <GithubIcon size={24} /> },
-  { id: "INT-03", name: "Notion", description: "Sync notes bi-directionally with Notion workspaces.", status: false, icon: <div className="font-serif font-black text-[24px]">N</div> },
-  { id: "INT-04", name: "Trello", description: "Create Trello cards from notes or link existing cards.", status: false, icon: <TrelloIcon size={24} /> },
-  { id: "INT-05", name: "Discord", description: "Send webhooks to Discord servers on specific events.", status: true, icon: <MessageSquare size={24} /> },
-];
-
 export default function AdminIntegrationsPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [integrations, setIntegrations] = useState(INITIAL_INTEGRATIONS);
-
-  const toggleIntegration = (id: string) => {
-    setIntegrations(integrations.map(int => 
-      int.id === id ? { ...int, status: !int.status } : int
-    ));
-  };
-
-  const filteredIntegrations = integrations.filter(int => 
-    int.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
-    <div className="w-full max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="w-full max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
-            <Blocks className="text-indigo-500" size={24} />
+          <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+              <Blocks size={22} />
+            </div>
             Integrations & Apps
           </h1>
-          <p className="text-[13px] font-medium text-slate-500 mt-1">Connect Gemma Note with your favorite tools and services.</p>
+          <p className="text-[13px] font-medium text-slate-500 mt-1">
+            Third-party integrations are coming soon.
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="h-10 px-4 rounded-xl bg-indigo-600 text-white font-bold text-[13px] hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-md shadow-indigo-500/20">
-            <Plus size={16} /> Custom Webhook
-          </button>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+            Planned Feature
+          </span>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden flex flex-col p-6 mb-8">
-        <div className="relative w-full max-w-md mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-          <input 
-            type="text" 
-            placeholder="Search integrations..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 shadow-sm"
-          />
-        </div>
+      {/* Main Empty State Hero Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-8 sm:p-12 text-center relative overflow-hidden">
+        {/* Background glow decoration */}
+        <div className="absolute -right-12 -top-12 w-64 h-64 bg-indigo-50/50 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -left-12 -bottom-12 w-64 h-64 bg-slate-100/60 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredIntegrations.map((integration) => (
-            <div key={integration.id} className="border border-slate-200 rounded-2xl p-6 flex flex-col relative group hover:border-indigo-200 transition-colors bg-slate-50/30">
-              
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-700 group-hover:scale-110 group-hover:shadow-md transition-all">
-                  {integration.icon}
-                </div>
-                <button 
-                  onClick={() => toggleIntegration(integration.id)}
-                  className={`transition-colors ${integration.status ? 'text-emerald-500' : 'text-slate-300'}`}
-                >
-                  {integration.status ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
-                </button>
-              </div>
-
-              <h3 className="text-[16px] font-bold text-slate-800 mb-2">{integration.name}</h3>
-              <p className="text-[13px] text-slate-500 leading-relaxed mb-6 flex-1">
-                {integration.description}
-              </p>
-
-              <div className="flex items-center justify-between pt-4 border-t border-slate-200/60 mt-auto">
-                {integration.status ? (
-                  <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Connected</span>
-                ) : (
-                  <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">Disconnected</span>
-                )}
-                {integration.status && (
-                  <button className="text-[12px] font-bold text-indigo-600 hover:text-indigo-700">Configure</button>
-                )}
-              </div>
+        <div className="relative z-10 max-w-lg mx-auto flex flex-col items-center">
+          {/* Illustration Placeholder */}
+          <div className="relative mb-6">
+            <div className="w-20 h-20 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-sm">
+              <Blocks size={38} />
             </div>
-          ))}
+            <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center border border-amber-200 shadow-xs">
+              <Construction size={18} />
+            </div>
+          </div>
+
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Integrations Ecosystem Coming Soon</h2>
+          <p className="text-sm text-slate-500 leading-relaxed mb-6">
+            Connect GemmaNote with your favorite productivity tools, developer platforms, and automation workflows.
+          </p>
+
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-600">
+            <Clock size={15} className="text-indigo-500" />
+            <span>Under Active Design & Development</span>
+          </div>
         </div>
       </div>
+
+      {/* Planned Integrations Section */}
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <Sparkles size={18} className="text-indigo-500" />
+            Planned Integrations
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Integration 1 */}
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm hover:border-indigo-200 transition-all flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100">
+              <MessageSquare size={22} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-base font-bold text-slate-800">Slack notifications</h3>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">Coming Soon</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Real-time activity alerts, note creation events, and workspace updates sent straight to designated Slack channels.
+              </p>
+            </div>
+          </div>
+
+          {/* Integration 2 */}
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm hover:border-indigo-200 transition-all flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100">
+              <Code size={22} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-base font-bold text-slate-800">GitHub issue linking</h3>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">Coming Soon</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Seamlessly attach GemmaNote documents to GitHub issues, pull requests, and commit references.
+              </p>
+            </div>
+          </div>
+
+          {/* Integration 3 */}
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm hover:border-indigo-200 transition-all flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100">
+              <FileText size={22} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-base font-bold text-slate-800">Notion sync</h3>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">Coming Soon</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Bi-directional database and page synchronization between GemmaNote and Notion workspaces.
+              </p>
+            </div>
+          </div>
+
+          {/* Integration 4 */}
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm hover:border-indigo-200 transition-all flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100">
+              <Zap size={22} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-base font-bold text-slate-800">Zapier webhooks</h3>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">Coming Soon</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Custom triggers and actions to connect GemmaNote events with 5,000+ web applications via Zapier.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }

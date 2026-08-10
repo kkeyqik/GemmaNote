@@ -1,106 +1,203 @@
 "use client";
 
-import React, { useState } from "react";
-import { 
-  Terminal, Search, Filter, Download, 
-  AlertTriangle, Info, XCircle, Play, Pause
+import React from "react";
+import {
+  Terminal,
+  ExternalLink,
+  ShieldAlert,
+  Server,
+  Activity,
+  Cpu,
+  Clock,
+  Sparkles,
+  Search,
+  Filter
 } from "lucide-react";
 
-// Dummy data for system logs
-const MOCK_LOGS = [
-  { id: "10492", timestamp: "2023-10-24T14:32:01.421Z", level: "ERROR", source: "API/Gateway", message: "Connection timeout while fetching user profile from external provider." },
-  { id: "10493", timestamp: "2023-10-24T14:32:05.111Z", level: "INFO", source: "AuthService", message: "Successful login for user naman@gemmanote.com (IP: 192.168.1.104)" },
-  { id: "10494", timestamp: "2023-10-24T14:35:12.890Z", level: "WARN", source: "Database", message: "Query execution time exceeded 500ms on table 'notes_metadata'" },
-  { id: "10495", timestamp: "2023-10-24T14:40:00.001Z", level: "INFO", source: "CronJob", message: "Successfully executed daily storage cleanup job." },
-  { id: "10496", timestamp: "2023-10-24T14:41:22.334Z", level: "ERROR", source: "Webhook", message: "Failed to deliver payload to Discord webhook (HTTP 429 Too Many Requests)" },
-  { id: "10497", timestamp: "2023-10-24T14:45:10.999Z", level: "INFO", source: "StorageService", message: "Uploaded new attachment 'design_v2.png' to S3 bucket." },
-];
-
 export default function AdminLogsPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isLive, setIsLive] = useState(false);
-
-  const getLevelBadge = (level: string) => {
-    switch (level) {
-      case "INFO": return <span className="inline-flex w-16 items-center justify-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-200 uppercase tracking-wider"><Info size={10} /> INFO</span>;
-      case "WARN": return <span className="inline-flex w-16 items-center justify-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-200 uppercase tracking-wider"><AlertTriangle size={10} /> WARN</span>;
-      case "ERROR": return <span className="inline-flex w-16 items-center justify-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-200 uppercase tracking-wider"><XCircle size={10} /> ERR</span>;
-      default: return null;
-    }
-  };
+  const plannedLogFeatures = [
+    {
+      title: "Real-Time Log Tail",
+      description: "Stream live serverless API and database events directly to the admin console.",
+      icon: Activity,
+    },
+    {
+      title: "Severity Level Filtering",
+      description: "Filter telemetry logs by DEBUG, INFO, WARN, and FATAL error thresholds.",
+      icon: Filter,
+    },
+    {
+      title: "Full-Text Grep Search",
+      description: "Perform sub-second regex and text searches across historical system log files.",
+      icon: Search,
+    },
+    {
+      title: "Automated Error Alerting",
+      description: "Receive instant notifications when error frequency exceeds set thresholds.",
+      icon: ShieldAlert,
+    },
+  ];
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col h-[calc(100vh-8rem)]">
-      
+    <div className="w-full max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
             <Terminal className="text-indigo-500" size={24} />
             System Logs
           </h1>
-          <p className="text-[13px] font-medium text-slate-500 mt-1">Raw server and infrastructure logs for debugging.</p>
+          <p className="text-[13px] font-medium text-slate-500 mt-1">
+            System log aggregation is a planned feature. Logs are currently available in Vercel Dashboard and Sentry.
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setIsLive(!isLive)}
-            className={`h-10 px-4 rounded-xl font-bold text-[13px] transition-colors flex items-center gap-2 shadow-sm border ${isLive ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+
+        {/* External Links Header Buttons */}
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href="https://vercel.com/dashboard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-10 px-4 rounded-xl bg-slate-900 text-white font-bold text-[13px] hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm"
           >
-            {isLive ? <><Pause size={16} /> Pause Live Tail</> : <><Play size={16} /> Live Tail</>}
-          </button>
-          <button className="h-10 px-4 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-[13px] hover:bg-slate-50 transition-colors flex items-center gap-2 shadow-sm">
-            <Download size={16} /> Export
-          </button>
+            <Server size={15} className="text-emerald-400" />
+            View Vercel Logs &rarr;
+          </a>
+          <a
+            href="https://sentry.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-10 px-4 rounded-xl bg-indigo-600 text-white font-bold text-[13px] hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-md shadow-indigo-500/20"
+          >
+            <ShieldAlert size={15} />
+            View Sentry Dashboard &rarr;
+          </a>
         </div>
       </div>
 
-      {/* Main Content Area - Log Terminal */}
-      <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col flex-1">
-        
-        {/* Toolbar */}
-        <div className="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
-            <input 
-              type="text" 
-              placeholder="Grep logs..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-8 pl-9 pr-4 bg-slate-800 border border-slate-700 rounded-lg text-[12px] font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-300 placeholder:text-slate-500"
-            />
+      {/* Terminal-Style Empty State */}
+      <div className="bg-slate-950 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden mb-8">
+        {/* Terminal Header Bar */}
+        <div className="bg-slate-900 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+            <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+            <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+            <span className="ml-2 text-[12px] font-mono text-slate-400">
+              gemma-note@admin: ~/telemetry/logs
+            </span>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="text-[12px] font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1.5">
-              <Filter size={14} /> Filter Levels
-            </button>
+          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Status: Aggregator Standby
           </div>
         </div>
 
-        {/* Terminal Output */}
-        <div className="flex-1 overflow-y-auto p-4 font-mono text-[12px] leading-relaxed bg-[#0F172A] selection:bg-indigo-500/30">
-          {MOCK_LOGS.map((log) => (
-            <div key={log.id} className="flex items-start gap-4 py-1.5 hover:bg-slate-800/50 rounded px-2 group transition-colors">
-              <div className="text-slate-500 shrink-0 w-[180px]">
-                {log.timestamp}
+        {/* Terminal Window Content */}
+        <div className="p-6 md:p-8 font-mono text-[13px] text-slate-300 leading-relaxed">
+          <div className="flex items-center gap-2 text-indigo-400 font-bold mb-3">
+            <span>$</span>
+            <span>gemmanote-telemetry status --verbose</span>
+          </div>
+
+          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 mb-6 text-slate-400 text-[12px] leading-6">
+            <p className="text-emerald-400 font-semibold">[SYSTEM INFO] Centralized Log Aggregation Pipeline</p>
+            <p className="text-slate-300">Status: <span className="text-amber-400 font-bold">Planned Feature</span></p>
+            <p className="text-slate-400">Internal log streaming table does not contain raw log entries yet.</p>
+            <p className="text-slate-400 mt-2">Active production telemetry is forwarded directly to external partners:</p>
+          </div>
+
+          {/* External Links Cards inside Terminal */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 font-sans">
+            {/* Vercel Link Card */}
+            <a
+              href="https://vercel.com/dashboard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-slate-900 border border-slate-800 hover:border-slate-700 p-5 rounded-xl transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-white font-bold text-[14px]">
+                    <Server size={18} className="text-emerald-400" />
+                    Vercel Runtime Logs
+                  </div>
+                  <ExternalLink size={14} className="text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                </div>
+                <p className="text-[12px] text-slate-400 leading-normal">
+                  Access live serverless function invocations, API response statuses, build outputs, and request durations.
+                </p>
               </div>
-              <div className="shrink-0 w-16">
-                {getLevelBadge(log.level)}
+              <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] font-mono text-emerald-400">
+                <span>View Vercel Logs &rarr;</span>
+                <span className="text-slate-400">vercel.com</span>
               </div>
-              <div className="text-slate-400 shrink-0 w-[120px] truncate" title={log.source}>
-                [{log.source}]
+            </a>
+
+            {/* Sentry Link Card */}
+            <a
+              href="https://sentry.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-slate-900 border border-slate-800 hover:border-slate-700 p-5 rounded-xl transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-white font-bold text-[14px]">
+                    <ShieldAlert size={18} className="text-rose-400" />
+                    Sentry Error Monitoring
+                  </div>
+                  <ExternalLink size={14} className="text-slate-500 group-hover:text-rose-400 transition-colors" />
+                </div>
+                <p className="text-[12px] text-slate-400 leading-normal">
+                  Track client-side React exceptions, unhandled backend API rejections, stack traces, and release errors.
+                </p>
               </div>
-              <div className={`flex-1 break-words ${log.level === 'ERROR' ? 'text-rose-400 font-medium' : log.level === 'WARN' ? 'text-amber-300' : 'text-slate-300'}`}>
-                {log.message}
+              <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] font-mono text-rose-400">
+                <span>View Sentry Dashboard &rarr;</span>
+                <span className="text-slate-400">sentry.io</span>
               </div>
-            </div>
-          ))}
-          {isLive && (
-            <div className="flex items-center gap-2 py-2 px-2 text-emerald-400 animate-pulse">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-              <span>Waiting for new logs...</span>
-            </div>
-          )}
+            </a>
+          </div>
+
+          <div className="flex items-center gap-2 text-slate-400 text-[12px]">
+            <span className="text-emerald-400 animate-pulse">●</span>
+            <span>Standing by for log pipeline deployment...</span>
+          </div>
         </div>
+      </div>
+
+      {/* Planned Log Features Grid */}
+      <div className="mb-4">
+        <h2 className="text-lg font-bold text-slate-800 mb-1">Upcoming Log Aggregation Features</h2>
+        <p className="text-[13px] text-slate-500">
+          Planned capabilities for the native GemmaNote log monitoring engine:
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        {plannedLogFeatures.map((feature, idx) => {
+          const Icon = feature.icon;
+          return (
+            <div
+              key={idx}
+              className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-slate-50 text-indigo-600 border border-slate-200/60 flex items-center justify-center mb-3">
+                  <Icon size={18} />
+                </div>
+                <h3 className="text-[13px] font-bold text-slate-800 mb-1">{feature.title}</h3>
+                <p className="text-[12px] text-slate-500 leading-relaxed">{feature.description}</p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-indigo-600">
+                <span className="flex items-center gap-1">
+                  <Sparkles size={12} /> Planned
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
