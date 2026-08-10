@@ -76,21 +76,33 @@ export async function requireAppUser(): Promise<User> {
     .map((e) => e.trim().toLowerCase());
 
   if (!user) {
+    // ClerkId not found — resolve the email from Clerk
     const clerkUser = await currentUser();
     const email = clerkUser?.emailAddresses[0]?.emailAddress ?? `${userId}@user.clerk.dev`;
     const initialRole = adminEmails.includes(email.toLowerCase()) ? "ADMIN" : "USER";
 
-    user = await prisma.user.upsert({
-      where: { clerkId: userId },
-      create: {
-        clerkId: userId,
-        email,
-        role: initialRole,
-      },
-      update: {
-        email,
-      },
+    // Fallback: check if a user with this email already exists (clerkId mismatch)
+    // This happens when the Clerk instance changes (dev → prod, app migration, etc.)
+    const existingByEmail = await prisma.user.findUnique({
+      where: { email },
     });
+
+    if (existingByEmail) {
+      // Auto-heal: update the stale clerkId to the current one
+      user = await prisma.user.update({
+        where: { id: existingByEmail.id },
+        data: { clerkId: userId },
+      });
+    } else {
+      // Genuinely new user — create
+      user = await prisma.user.create({
+        data: {
+          clerkId: userId,
+          email,
+          role: initialRole,
+        },
+      });
+    }
   }
 
   // Auto-elevate admin emails if role is still USER in DB
