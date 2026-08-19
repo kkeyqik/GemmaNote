@@ -3,6 +3,7 @@ import { documentDto, parseDocumentInput, type DocumentInput } from "@/lib/docum
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getPersonalWorkspace, requireWorkspaceAccess } from "@/lib/workspaces";
+import { assertSameOrigin, readJson } from "@/lib/request-security";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  assertSameOrigin(request);
   const rateLimit = checkRateLimit(request);
   if (!rateLimit.success) {
     return Response.json(
@@ -54,8 +56,8 @@ export async function POST(request: Request) {
 
   try {
     const user = await requireAppUser();
-    const body: unknown = await request.json();
-    if (!body || typeof body !== "object") {
+    const body: unknown = await readJson<unknown>(request);
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
       return Response.json({ error: "Invalid request body" }, { status: 400 });
     }
 

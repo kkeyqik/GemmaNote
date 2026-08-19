@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Document } from "@/generated/prisma/client.js";
 import { ApiError } from "@/lib/app-auth";
+import { sanitizeDocumentContent } from "@/lib/content-security";
 
 export type DocumentInput = {
   title?: unknown;
@@ -17,6 +18,26 @@ export type DocumentInput = {
   externalId?: unknown;
   workspaceId?: unknown;
 };
+
+export const DOCUMENT_MUTABLE_FIELDS = new Set([
+  "title",
+  "content",
+  "plainText",
+  "keywords",
+  "wordCount",
+  "isFavorite",
+  "isTrash",
+  "isArchived",
+  "trashedAt",
+]);
+
+export function assertDocumentPatchFields(input: Record<string, unknown>): void {
+  for (const key of Object.keys(input)) {
+    if (!DOCUMENT_MUTABLE_FIELDS.has(key)) {
+      throw new ApiError(400, `Field ${key} cannot be changed through this endpoint`);
+    }
+  }
+}
 
 function stringValue(value: unknown, field: string, maxLength: number, fallback = "") {
   if (value === undefined) return fallback;
@@ -49,7 +70,7 @@ export function parseDocumentInput(input: DocumentInput) {
 
   return {
     title: stringValue(input.title, "title", 200, "Untitled"),
-    content: stringValue(input.content, "content", 2_000_000),
+    content: sanitizeDocumentContent(stringValue(input.content, "content", 2_000_000)),
     plainText: stringValue(input.plainText, "plainText", 2_000_000),
     keywords: stringValue(input.keywords, "keywords", 2_000),
     wordCount: wordCount as number,

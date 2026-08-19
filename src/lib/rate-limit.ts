@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 export interface RateLimitOptions {
   limit?: number;
   windowMs?: number;
@@ -14,86 +16,46 @@ export interface RateLimitResult {
 const globalForRateLimit = globalThis as unknown as {
   rateLimitMap?: Map<string, number[]>;
 };
-
 const tracker = globalForRateLimit.rateLimitMap ?? new Map<string, number[]>();
+if (process.env.NODE_ENV !== "production") globalForRateLimit.rateLimitMap = tracker;
 
-if (process.env.NODE_ENV !== "production") {
-  globalForRateLimit.rateLimitMap = tracker;
-}
-
-/**
- * Extracts a unique key for rate limiting from request headers.
- * Uses IP (x-forwarded-for, x-real-ip, cf-connecting-ip) or session (authorization, cookie).
- */
 function getClientIdentifier(req: Request): string {
-  const headers = req.headers;
-  const xForwardedFor = headers.get("x-forwarded-for");
-  if (xForwardedFor) {
-    const ip = xForwardedFor.split(",")[0].trim();
-    if (ip) return `ip:${ip}`;
-  }
-
-  const xRealIp = headers.get("x-real-ip");
-  if (xRealIp) return `ip:${xRealIp.trim()}`;
-
-  const cfIp = headers.get("cf-connecting-ip");
-  if (cfIp) return `ip:${cfIp.trim()}`;
-
-  const authHeader = headers.get("authorization");
-  if (authHeader) return `auth:${authHeader.trim()}`;
-
-  const cookieHeader = headers.get("cookie");
-  if (cookieHeader) return `cookie:${cookieHeader.trim()}`;
-
-  return "ip:127.0.0.1";
+  const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const real = req.headers.get("x-real-ip")?.trim();
+  const cf = req.headers.get("cf-connecting-ip")?.trim();
+  const raw = forwarded || real || cf || "unknown-client";
+  return createHash("sha256").update(raw).digest("hex").slice(0, 32);
 }
 
-/**
- * In-memory sliding-window rate limiter.
- * Allows max 60 requests per minute per IP / session by default.
- */
-export function checkRateLimit(
-  req: Request,
-  options?: RateLimitOptions
-): RateLimitResult {
-  const limit = options?.limit ?? 60;
-  const windowMs = options?.windowMs ?? 60 * 1000;
+function localRateLimit(req: Request, limit: number, windowMs: number): RateLimitResult {
   const now = Date.now();
   const windowStart = now - windowMs;
-
   const key = getClientIdentifier(req);
-  const timestamps = tracker.get(key) || [];
-
-  // Filter out timestamps outside the current window
-  const validTimestamps = timestamps.filter((ts) => ts > windowStart);
-
-  // Periodic cleanup if map grows large
+  const valid = (tracker.get(key) ?? []).filter((ts) => ts > windowStart);
+  if (valid.length >= limit) {
+    tracker.set(key, valid);
+    return { success: false, remaining: 0, retryAfter: Math.max(1, Math.ceil((valid[0] + windowMs - now) / 1000)) };
+  }
+  valid.push(now);
+  tracker.set(key, valid);
   if (tracker.size > 10000) {
-    for (const [k, tsArray] of tracker.entries()) {
-      if (tsArray.every((ts) => ts <= windowStart)) {
-        tracker.delete(k);
-      }
+    for (const [candidate, timestamps] of tracker) {
+      if (timestamps.every((ts) => ts <= windowStart)) tracker.delete(candidate);
     }
   }
+  return { success: true, remaining: limit - valid.length, retryAfter: 0 };
+}
 
-  if (validTimestamps.length < limit) {
-    validTimestamps.push(now);
-    tracker.set(key, validTimestamps);
-    const remaining = limit - validTimestamps.length;
-    return {
-      success: true,
-      remaining,
-      retryAfter: 0,
-    };
-  } else {
-    tracker.set(key, validTimestamps);
-    const oldestTimestamp = validTimestamps[0];
-    const retryAfterMs = oldestTimestamp + windowMs - now;
-    const retryAfter = Math.max(1, Math.ceil(retryAfterMs / 1000));
-    return {
-      success: false,
-      remaining: 0,
-      retryAfter,
-    };
+/**
+ * Production note: configure a shared limiter at the edge/WAF or Redis layer.
+ * This bounded fallback is intentionally only a development safety net; it is
+ * not a substitute for Upstash/Vercel KV/Cloudflare rate limiting.
+ */
+export function checkRateLimit(req: Request, options?: RateLimitOptions): RateLimitResult {
+  if (process.env.NODE_ENV === "production" && process.env.RATE_LIMIT_BACKEND !== "shared") {
+    throw new Error("RATE_LIMIT_BACKEND=shared is required in production; configure Redis/KV or an edge limiter.");
   }
+  const limit = Math.max(1, options?.limit ?? 60);
+  const windowMs = Math.max(1000, options?.windowMs ?? 60_000);
+  return localRateLimit(req, limit, windowMs);
 }

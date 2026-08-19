@@ -23,6 +23,24 @@ model User {
   usageRecords         UsageRecord[]
   voicePresets         VoicePreset[]
   supportRequests      SupportRequest[]
+  generationIdempotency GenerationIdempotency[]
+  auditEvents         AuditEvent[] @relation("AuditActor")
+}
+
+model AuditEvent {
+  id           String   @id @default(uuid())
+  actorUserId  String
+  action       String
+  targetType   String
+  targetId     String?
+  sourceIpHash String?
+  userAgent    String?
+  metadata     String?
+  createdAt    DateTime @default(now())
+  actor        User     @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([actorUserId, createdAt])
+  @@index([targetType, targetId, createdAt])
 }
 
 model Document {
@@ -80,8 +98,22 @@ model UsageRecord {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  idempotencyKeys GenerationIdempotency[]
 
   @@unique([userId, periodStart])
+}
+
+model GenerationIdempotency {
+  id            String      @id @default(uuid())
+  userId        String
+  idempotencyKey String
+  usageRecordId String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usageRecord   UsageRecord @relation(fields: [usageRecordId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@unique([userId, idempotencyKey])
+  @@index([createdAt])
 }
 
 model VoicePreset {

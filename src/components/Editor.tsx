@@ -7,10 +7,12 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
-import { Bold, Italic, Underline, Strikethrough, Heading1, Heading2, List, ListOrdered, Link, Image as ImageIcon, Quote, Undo, Redo } from 'lucide-react';
+import { Bold, Italic, Strikethrough, Heading1, Heading2, List, ListOrdered, Quote, Undo, Redo } from 'lucide-react';
 import { useEffect } from 'react';
 
-const MenuBar = ({ editor }: any) => {
+type MenuBarProps = { editor: NonNullable<ReturnType<typeof useEditor>> };
+
+const MenuBar = ({ editor }: MenuBarProps) => {
   if (!editor) return null;
 
   return (

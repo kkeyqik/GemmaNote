@@ -22,7 +22,7 @@ export async function GET() {
       planCounts,
       latestUsers,
       latestNotes,
-      documentsContent,
+      storageAggregate,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.document.count(),
@@ -77,12 +77,13 @@ export async function GET() {
           createdAt: true,
         },
       }),
-      prisma.document.findMany({
-        select: {
-          content: true,
-          plainText: true,
-        },
-      }),
+      prisma.$queryRaw<Array<{ total_bytes: bigint | number | null }>>`
+        SELECT COALESCE(SUM(
+          octet_length(COALESCE(content, '')) +
+          octet_length(COALESCE("plainText", ''))
+        ), 0) AS total_bytes
+        FROM "Document"
+      `,
     ]);
 
     // Calculate growth percentage
@@ -133,11 +134,7 @@ export async function GET() {
       },
     ];
 
-    const estimatedStorageBytes = documentsContent.reduce((acc, doc) => {
-      const contentLen = doc.content ? doc.content.length : 0;
-      const plainTextLen = doc.plainText ? doc.plainText.length : 0;
-      return acc + contentLen + plainTextLen;
-    }, 0);
+    const estimatedStorageBytes = Number(storageAggregate[0]?.total_bytes ?? 0);
 
     const totalGenerations = totalGenerationsAgg._sum.usageCount || 0;
 

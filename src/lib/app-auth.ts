@@ -45,11 +45,7 @@ export function getPlanFeatures(plan: string) {
 }
 
 export function isAdmin(user: User): boolean {
-  const adminEmails = (process.env.ADMIN_EMAILS || "keyqik@gmail.com")
-    .split(",")
-    .map((e) => e.trim().toLowerCase());
-
-  return user.role === "ADMIN" || adminEmails.includes(user.email.toLowerCase());
+  return user.role === "ADMIN";
 }
 
 export async function requireAdminUser(): Promise<User> {
@@ -71,45 +67,22 @@ export async function requireAppUser(): Promise<User> {
     where: { clerkId: userId },
   });
 
-  const adminEmails = (process.env.ADMIN_EMAILS || "keyqik@gmail.com")
-    .split(",")
-    .map((e) => e.trim().toLowerCase());
-
   if (!user) {
-    // ClerkId not found — resolve the email from Clerk
     const clerkUser = await currentUser();
-    const email = clerkUser?.emailAddresses[0]?.emailAddress ?? `${userId}@user.clerk.dev`;
-    const initialRole = adminEmails.includes(email.toLowerCase()) ? "ADMIN" : "USER";
-
-    // Fallback: check if a user with this email already exists (clerkId mismatch)
-    // This happens when the Clerk instance changes (dev → prod, app migration, etc.)
-    const existingByEmail = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingByEmail) {
-      // Auto-heal: update the stale clerkId to the current one
-      user = await prisma.user.update({
-        where: { id: existingByEmail.id },
-        data: { clerkId: userId },
-      });
-    } else {
-      // Genuinely new user — create
-      user = await prisma.user.create({
-        data: {
-          clerkId: userId,
-          email,
-          role: initialRole,
-        },
-      });
+    const email = clerkUser?.emailAddresses.find((address) => address.verification?.status === "verified")?.emailAddress;
+    if (!email) {
+      throw new ApiError(403, "A verified email address is required");
     }
-  }
 
-  // Auto-elevate admin emails if role is still USER in DB
-  if (user && user.role !== "ADMIN" && adminEmails.includes(user.email.toLowerCase())) {
-    user = await prisma.user.update({
-      where: { id: user.id },
-      data: { role: "ADMIN" },
+    // Never rebind an existing account by email during an authenticated request.
+    // Account migrations must be handled explicitly by an administrator.
+    const existingByEmail = await prisma.user.findUnique({ where: { email } });
+    if (existingByEmail) {
+      throw new ApiError(409, "Account identity mismatch; contact support");
+    }
+
+    user = await prisma.user.create({
+      data: { clerkId: userId, email, role: "USER" },
     });
   }
 
@@ -145,8 +118,16 @@ export async function getUsage(user: User) {
   };
 }
 
-export async function consumeGeneration(user: User) {
+export async function consumeGeneration(user: User, idempotencyKey?: string) {
   const periodStart = currentUsagePeriod();
+
+  if (idempotencyKey) {
+    const previous = await prisma.generationIdempotency.findUnique({
+      where: { userId_idempotencyKey: { userId: user.id, idempotencyKey } },
+      include: { usageRecord: true },
+    });
+    if (previous) return getUsage(user);
+  }
   const plan = getPlan(user.plan);
   const limit = PLAN_LIMITS[plan];
 
@@ -176,6 +157,12 @@ export async function consumeGeneration(user: User) {
     where: { id: user.id },
     data: { usageCount: { increment: 1 } },
   });
+
+  if (idempotencyKey) {
+    await prisma.generationIdempotency.create({
+      data: { userId: user.id, idempotencyKey, usageRecordId: (await prisma.usageRecord.findUniqueOrThrow({ where: { userId_periodStart: { userId: user.id, periodStart } } })).id },
+    });
+  }
 
   return getUsage(user);
 }

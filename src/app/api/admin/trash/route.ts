@@ -1,5 +1,6 @@
 import { ApiError, errorResponse, requireAdminUser } from "@/lib/app-auth";
 import { prisma } from "@/lib/prisma";
+import { assertSameOrigin, readJson } from "@/lib/request-security";
 
 export const dynamic = "force-dynamic";
 
@@ -68,9 +69,11 @@ export async function GET(request: Request) {
 export async function DELETE(request: Request) {
   try {
     await requireAdminUser();
+    assertSameOrigin(request);
 
-    const body = await request.json().catch(() => ({}));
-    const { id } = body || {};
+    const body = await readJson<unknown>(request);
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new ApiError(400, "Invalid request body");
+    const { id } = body as { id?: unknown };
 
     if (!id || typeof id !== "string") {
       throw new ApiError(400, "Document ID is required");
@@ -101,9 +104,11 @@ export async function DELETE(request: Request) {
 export async function PATCH(request: Request) {
   try {
     await requireAdminUser();
+    assertSameOrigin(request);
 
-    const body = await request.json().catch(() => ({}));
-    const { id } = body || {};
+    const body = await readJson<unknown>(request);
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new ApiError(400, "Invalid request body");
+    const { id } = body as { id?: unknown };
 
     if (!id || typeof id !== "string") {
       throw new ApiError(400, "Document ID is required");

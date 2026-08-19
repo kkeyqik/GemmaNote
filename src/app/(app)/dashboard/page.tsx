@@ -156,7 +156,14 @@ export default function Dashboard() {
         const newNote = message.payload;
 
         // Enforce the account quota before importing
-        const quotaResponse = await fetch('/api/generations/consume', { method: 'POST' });
+        const quotaResponse = await fetch('/api/generations/consume', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': crypto.randomUUID(),
+          },
+          body: JSON.stringify({}),
+        });
         if (!quotaResponse.ok) {
           const quota = await quotaResponse.json().catch(() => ({ error: 'Generation limit reached' }));
           setCloudSyncStatus(quota.error || 'Generation limit reached');

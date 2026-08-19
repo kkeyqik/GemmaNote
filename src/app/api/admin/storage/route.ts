@@ -7,15 +7,28 @@ export async function GET() {
   try {
     await requireAdminUser();
 
-    const [allDocuments, topUsersRaw] = await Promise.all([
-      prisma.document.findMany({
-        select: {
-          id: true,
-          content: true,
-          plainText: true,
-          isTrash: true,
-        },
-      }),
+    const [storageAggregates, topUsersRaw] = await Promise.all([
+      prisma.$queryRaw<Array<{
+        total_documents: bigint | number;
+        total_storage_bytes: bigint | number | null;
+        trashed_count: bigint | number;
+        trashed_storage_bytes: bigint | number | null;
+      }>>`
+        SELECT
+          COUNT(*) AS total_documents,
+          COALESCE(SUM(
+            octet_length(COALESCE(content, '')) +
+            octet_length(COALESCE("plainText", ''))
+          ), 0) AS total_storage_bytes,
+          COUNT(*) FILTER (WHERE "isTrash" = true) AS trashed_count,
+          COALESCE(SUM(
+            CASE WHEN "isTrash" = true THEN
+              octet_length(COALESCE(content, '')) +
+              octet_length(COALESCE("plainText", ''))
+            ELSE 0 END
+          ), 0) AS trashed_storage_bytes
+        FROM "Document"
+      `,
       prisma.user.findMany({
         take: 10,
         orderBy: {
@@ -35,23 +48,11 @@ export async function GET() {
       }),
     ]);
 
-    const totalDocuments = allDocuments.length;
-    let totalStorageBytes = 0;
-    let trashedCount = 0;
-    let trashedStorageBytes = 0;
-
-    for (const doc of allDocuments) {
-      const contentLen = doc.content ? doc.content.length : 0;
-      const plainTextLen = doc.plainText ? doc.plainText.length : 0;
-      const docBytes = contentLen + plainTextLen;
-
-      totalStorageBytes += docBytes;
-
-      if (doc.isTrash) {
-        trashedCount += 1;
-        trashedStorageBytes += docBytes;
-      }
-    }
+    const aggregate = storageAggregates[0];
+    const totalDocuments = Number(aggregate?.total_documents ?? 0);
+    const totalStorageBytes = Number(aggregate?.total_storage_bytes ?? 0);
+    const trashedCount = Number(aggregate?.trashed_count ?? 0);
+    const trashedStorageBytes = Number(aggregate?.trashed_storage_bytes ?? 0);
 
     const totalStorageMB = Number((totalStorageBytes / (1024 * 1024)).toFixed(4));
     const trashedStorageMB = Number((trashedStorageBytes / (1024 * 1024)).toFixed(4));

@@ -1,5 +1,7 @@
 import { errorResponse, requireAdminUser, ApiError } from "@/lib/app-auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client.js";
+import { assertSameOrigin, readJson } from "@/lib/request-security";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,7 @@ export async function GET(request: Request) {
     const limitParam = searchParams.get("limit");
     const limit = Math.max(1, Math.min(100, parseInt(limitParam || "10", 10) || 10));
 
-    const where: any = {};
+    const where: Prisma.SupportRequestWhereInput = {};
 
     if (status && ["OPEN", "IN_PROGRESS", "CLOSED"].includes(status)) {
       where.status = status;
@@ -41,7 +43,6 @@ export async function GET(request: Request) {
             select: {
               id: true,
               email: true,
-              clerkId: true,
             },
           },
         },
@@ -65,9 +66,11 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   try {
     await requireAdminUser();
+    assertSameOrigin(request);
 
-    const body = await request.json();
-    const { id, status } = body || {};
+    const body = await readJson<unknown>(request);
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new ApiError(400, "Invalid request body");
+    const { id, status } = body as { id?: unknown; status?: unknown };
 
     if (!id || typeof id !== "string") {
       throw new ApiError(400, "Support request ID is required.");

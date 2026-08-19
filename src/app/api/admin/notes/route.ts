@@ -1,5 +1,6 @@
 import { errorResponse, requireAdminUser } from "@/lib/app-auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client.js";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
     const limitParam = searchParams.get("limit");
     const limit = Math.max(1, Math.min(100, parseInt(limitParam || "20", 10) || 20));
 
-    const conditions: any[] = [];
+    const conditions: Prisma.DocumentWhereInput[] = [];
 
     if (search) {
       conditions.push({

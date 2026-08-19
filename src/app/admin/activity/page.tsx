@@ -3,19 +3,22 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { 
   Activity, Search, Filter, UserPlus, FileText, FilePlus, 
-  FileEdit, Clock, RefreshCw, AlertCircle 
+  FileEdit, Clock, RefreshCw, AlertCircle, LifeBuoy, Mic 
 } from "lucide-react";
 
-interface ActivityDetails {
-  email?: string;
-  title?: string;
-  userId?: string;
-}
-
 interface ActivityItem {
-  type: "USER_SIGNUP" | "DOCUMENT_CREATED" | "DOCUMENT_UPDATED";
-  timestamp: string;
-  details: ActivityDetails;
+  id?: string;
+  type: string;
+  title?: string;
+  description?: string;
+  userEmail?: string;
+  createdAt?: string;
+  timestamp?: string;
+  details?: {
+    email?: string;
+    title?: string;
+    userId?: string;
+  };
 }
 
 export default function AdminActivityPage() {
@@ -34,8 +37,11 @@ export default function AdminActivityPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.message || `Server returned status ${res.status}`);
       }
-      const data = await res.json();
-      setActivities(data);
+      const data: unknown = await res.json();
+      const activityList = data && typeof data === "object" && "activities" in data
+        ? (data as { activities?: unknown }).activities
+        : data;
+      setActivities(Array.isArray(activityList) ? (activityList as ActivityItem[]) : []);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load activity log";
       setError(msg);
@@ -48,7 +54,8 @@ export default function AdminActivityPage() {
     fetchActivities();
   }, [fetchActivities]);
 
-  const formatRelativeTime = (timestamp: string) => {
+  const formatRelativeTime = (timestamp?: string) => {
+    if (!timestamp) return "Just now";
     const date = new Date(timestamp);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -67,56 +74,92 @@ export default function AdminActivityPage() {
   };
 
   const getEventConfig = (item: ActivityItem) => {
-    switch (item.type) {
-      case "USER_SIGNUP":
-        return {
-          icon: <UserPlus size={16} className="text-purple-600" />,
-          bgColor: "bg-purple-100",
-          badgeBg: "bg-purple-50 text-purple-700 border-purple-200",
-          badgeLabel: "User Signup",
-          description: `New user signed up: ${item.details.email || "Unknown User"}`,
-          userEmail: item.details.email,
-        };
-      case "DOCUMENT_CREATED":
-        return {
-          icon: <FilePlus size={16} className="text-emerald-600" />,
-          bgColor: "bg-emerald-100",
-          badgeBg: "bg-emerald-50 text-emerald-700 border-emerald-200",
-          badgeLabel: "Document Created",
-          description: `New document: ${item.details.title || "Untitled"}`,
-          userEmail: item.details.email,
-        };
-      case "DOCUMENT_UPDATED":
-        return {
-          icon: <FileEdit size={16} className="text-blue-600" />,
-          bgColor: "bg-blue-100",
-          badgeBg: "bg-blue-50 text-blue-700 border-blue-200",
-          badgeLabel: "Document Updated",
-          description: `Document updated: ${item.details.title || "Untitled"}`,
-          userEmail: item.details.email,
-        };
-      default:
-        return {
-          icon: <Activity size={16} className="text-slate-600" />,
-          bgColor: "bg-slate-100",
-          badgeBg: "bg-slate-50 text-slate-700 border-slate-200",
-          badgeLabel: "Activity",
-          description: "System event occurred",
-          userEmail: undefined,
-        };
+    const rawType = (item.type || "").toLowerCase();
+    const email = item.userEmail || item.details?.email || "";
+    const title = item.title || item.details?.title || "Untitled";
+
+    if (rawType.includes("user") || rawType.includes("signup") || rawType === "user_registered") {
+      return {
+        icon: <UserPlus size={16} className="text-purple-600" />,
+        bgColor: "bg-purple-100",
+        badgeBg: "bg-purple-50 text-purple-700 border-purple-200",
+        badgeLabel: "User Signup",
+        description: item.description || `New user registered: ${email || "New User"}`,
+        userEmail: email,
+      };
     }
+
+    if (rawType.includes("document_created") || rawType === "document_created") {
+      return {
+        icon: <FilePlus size={16} className="text-emerald-600" />,
+        bgColor: "bg-emerald-100",
+        badgeBg: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        badgeLabel: "Doc Created",
+        description: item.description || `New document: ${title}`,
+        userEmail: email,
+      };
+    }
+
+    if (rawType.includes("document_updated") || rawType === "document_updated") {
+      return {
+        icon: <FileEdit size={16} className="text-blue-600" />,
+        bgColor: "bg-blue-100",
+        badgeBg: "bg-blue-50 text-blue-700 border-blue-200",
+        badgeLabel: "Doc Updated",
+        description: item.description || `Document updated: ${title}`,
+        userEmail: email,
+      };
+    }
+
+    if (rawType.includes("support") || rawType === "support_ticket") {
+      return {
+        icon: <LifeBuoy size={16} className="text-amber-600" />,
+        bgColor: "bg-amber-100",
+        badgeBg: "bg-amber-50 text-amber-700 border-amber-200",
+        badgeLabel: "Support Ticket",
+        description: item.description || `Support ticket: ${title}`,
+        userEmail: email,
+      };
+    }
+
+    if (rawType.includes("voice") || rawType === "voice_preset") {
+      return {
+        icon: <Mic size={16} className="text-indigo-600" />,
+        bgColor: "bg-indigo-100",
+        badgeBg: "bg-indigo-50 text-indigo-700 border-indigo-200",
+        badgeLabel: "Voice Preset",
+        description: item.description || `Voice preset: ${title}`,
+        userEmail: email,
+      };
+    }
+
+    return {
+      icon: <Activity size={16} className="text-slate-600" />,
+      bgColor: "bg-slate-100",
+      badgeBg: "bg-slate-50 text-slate-700 border-slate-200",
+      badgeLabel: "Activity",
+      description: item.description || title || "System event occurred",
+      userEmail: email,
+    };
   };
 
   const filteredActivities = activities.filter((item) => {
-    const matchesType = selectedType === "ALL" || item.type === selectedType;
+    const rawType = (item.type || "").toUpperCase();
+    const matchesType =
+      selectedType === "ALL" ||
+      rawType.includes(selectedType) ||
+      (selectedType === "USER_SIGNUP" && (rawType.includes("USER") || rawType.includes("SIGNUP"))) ||
+      (selectedType === "DOCUMENT_CREATED" && rawType.includes("DOC"));
+
     const term = searchTerm.toLowerCase().trim();
     if (!term) return matchesType;
 
-    const emailMatch = item.details.email?.toLowerCase().includes(term);
-    const titleMatch = item.details.title?.toLowerCase().includes(term);
-    const typeMatch = item.type.toLowerCase().includes(term);
+    const email = (item.userEmail || item.details?.email || "").toLowerCase();
+    const title = (item.title || item.details?.title || "").toLowerCase();
+    const desc = (item.description || "").toLowerCase();
+    const typeStr = (item.type || "").toLowerCase();
 
-    return matchesType && (emailMatch || titleMatch || typeMatch);
+    return matchesType && (email.includes(term) || title.includes(term) || desc.includes(term) || typeStr.includes(term));
   });
 
   return (
@@ -130,7 +173,7 @@ export default function AdminActivityPage() {
             Activity Log
           </h1>
           <p className="text-[13px] font-medium text-slate-500 mt-1">
-            Real-time audit log of user signups and document modifications across the platform.
+            Real-time audit log of user signups, documents, and support activity across the platform.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -212,17 +255,7 @@ export default function AdminActivityPage() {
                   : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
               }`}
             >
-              Created Docs
-            </button>
-            <button
-              onClick={() => setSelectedType("DOCUMENT_UPDATED")}
-              className={`px-3 py-1.5 rounded-xl text-[12px] font-bold transition-colors ${
-                selectedType === "DOCUMENT_UPDATED"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-              }`}
-            >
-              Updated Docs
+              Documents
             </button>
           </div>
 
@@ -257,7 +290,7 @@ export default function AdminActivityPage() {
               <p className="text-[13px] font-medium text-slate-400 mt-1 max-w-sm">
                 {searchTerm || selectedType !== "ALL"
                   ? "No activity entries match your filter or search criteria."
-                  : "There is no recorded signup or document activity yet."}
+                  : "There is no recorded activity yet."}
               </p>
             </div>
           ) : (
@@ -266,9 +299,10 @@ export default function AdminActivityPage() {
               {filteredActivities.map((item, index) => {
                 const config = getEventConfig(item);
                 const isLast = index === filteredActivities.length - 1;
+                const timeStr = item.createdAt || item.timestamp;
 
                 return (
-                  <div key={`${item.type}-${item.timestamp}-${index}`} className="flex gap-4 group relative">
+                  <div key={item.id || `${item.type}-${timeStr}-${index}`} className="flex gap-4 group relative">
                     {/* Connecting Line */}
                     {!isLast && (
                       <div className="absolute left-4 top-10 bottom-[-24px] w-px bg-slate-100 group-hover:bg-indigo-100 transition-colors z-0"></div>
@@ -291,18 +325,18 @@ export default function AdminActivityPage() {
                           </span>
                         </div>
                         
-                        {config.userEmail && item.type !== "USER_SIGNUP" && (
+                        {config.userEmail && (
                           <div className="flex items-center gap-2 text-[12px] font-medium text-slate-500">
-                            <span>Author:</span>
+                            <span>User:</span>
                             <span className="text-indigo-600 font-bold">{config.userEmail}</span>
                           </div>
                         )}
                       </div>
 
                       {/* Time Badge */}
-                      <div className="flex items-center gap-1 text-[12px] font-semibold text-slate-400 shrink-0 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100" title={new Date(item.timestamp).toLocaleString()}>
+                      <div className="flex items-center gap-1 text-[12px] font-semibold text-slate-400 shrink-0 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100" title={timeStr ? new Date(timeStr).toLocaleString() : undefined}>
                         <Clock size={12} className="text-slate-400" />
-                        <span>{formatRelativeTime(item.timestamp)}</span>
+                        <span>{formatRelativeTime(timeStr)}</span>
                       </div>
                     </div>
                   </div>
@@ -320,7 +354,7 @@ export default function AdminActivityPage() {
           </span>
           {activities.length > 0 && (
             <span className="text-slate-400">
-              Latest activity: {new Date(activities[0].timestamp).toLocaleTimeString()}
+              Latest activity: {formatRelativeTime(activities[0].createdAt || activities[0].timestamp)}
             </span>
           )}
         </div>

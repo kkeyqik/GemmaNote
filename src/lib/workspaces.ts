@@ -20,7 +20,13 @@ export async function getPersonalWorkspace(user: User) {
   });
 }
 
-export async function requireWorkspaceAccess(userId: string, workspaceId: string) {
+export type WorkspacePermission = "READ" | "WRITE" | "ADMIN";
+
+export async function requireWorkspaceAccess(
+  userId: string,
+  workspaceId: string,
+  permission: WorkspacePermission = "READ",
+) {
   const workspace = await prisma.workspace.findFirst({
     where: {
       id: workspaceId,
@@ -29,10 +35,28 @@ export async function requireWorkspaceAccess(userId: string, workspaceId: string
         { members: { some: { userId } } },
       ],
     },
+    include: {
+      members: {
+        where: { userId },
+        select: { role: true },
+      },
+    },
   });
 
   if (!workspace) {
     throw new ApiError(404, "Workspace not found");
+  }
+
+  const role = workspace.ownerId === userId ? "OWNER" : workspace.members[0]?.role;
+  const allowed =
+    permission === "READ"
+      ? Boolean(role)
+      : permission === "WRITE"
+        ? role === "OWNER" || role === "ADMIN" || role === "MEMBER"
+        : role === "OWNER" || role === "ADMIN";
+
+  if (!allowed) {
+    throw new ApiError(403, "You do not have permission to modify this workspace");
   }
 
   return workspace;
